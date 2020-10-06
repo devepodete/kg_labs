@@ -7,7 +7,11 @@
 ![Contributors Welcome](https://img.shields.io/badge/contributors-welcome-brightgreen)
 
 ### ЛР 1 :snake:
+![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab1/gif/demonstrate.gif)
+
 Написана на ```Python```. Для совмещения виджетов с графиком использовал ```Tkinter```. Сам график рисовал при помощи ```Matplotlib```. ```Numpy``` использовал для математики.
 
 ### ЛР 2 :volcano:
+![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab2/gif/demonstrate.gif)
+
 Написана на ```C++```. Для работы с окнами использовал ```GLFW```. API для настройки различных буферов, очередей и работы с железом - ```Vulkan```. ```GLM``` использовал для математики.
