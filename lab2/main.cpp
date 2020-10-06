@@ -167,7 +167,6 @@ private:
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
         glfwSetKeyCallback(window, keylogger.key_callback);
-        glfwSetCursorPosCallback(window, keylogger.cursor_position_callback);
         glfwSetScrollCallback(window, keylogger.mouse_scroll_callback);
 
         glfwSetWindowOpacity(window, 1.0f);
