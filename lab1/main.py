@@ -44,7 +44,7 @@ class App(tk.Tk):
 
 
         x, y = self.data(self.a.get(), self.k.get(), self.B.get())
-        self.fig, self.ax = self.configure_plot(x, y)
+        self.fig, self.ax = self.configure_plot()
 
         xBorder, yBorder = self.calculate_borders(x, y)
 
@@ -107,7 +107,7 @@ class App(tk.Tk):
         self.ax.text(xBorder / 20, yBorder, 'Y', size=10, bbox=dict(facecolor='orange', alpha=0.3))
 
     @staticmethod
-    def configure_plot(x, y):
+    def configure_plot():
         fig = plt.figure(1)
         plt.style.use('seaborn-bright')
         ax = SubplotZero(fig, 111)
