@@ -11,12 +11,12 @@
 
 //#include "myprint.h"
 
-namespace sfh{
+namespace sfh {
     const sf::Vector2f squarePointSize = sf::Vector2f(10.0f, 10.0f);
 
     sf::RectangleShape squarePoint(sf::Vector2f pos) {
         sf::RectangleShape rect;
-        rect.setPosition(pos - sfh::squarePointSize/2.0f);
+        rect.setPosition(pos - sfh::squarePointSize / 2.0f);
         rect.setSize(sfh::squarePointSize);
         rect.setFillColor(sf::Color::White);
         rect.setOutlineColor(sf::Color::Black);
@@ -36,16 +36,16 @@ namespace sfh{
     }
 
     inline sf::Vector2f pair2Vec2f(const std::pair<float, float> &f) {
-        return sf::Vector2f(f.first, f.second);
+        return {f.first, f.second};
     }
 
     inline std::pair<float, float> Vec2f2pair(const sf::Vector2f &vec) {
-        return std::pair<float, float>(vec.x, vec.y);
+        return std::make_pair(vec.x, vec.y);
     }
 
     std::vector<sf::Vector2f> pairs2points(const std::vector<std::pair<float, float>> &pairs) {
         std::vector<sf::Vector2f> res(pairs.size());
-        for(size_t i = 0; i < pairs.size(); i++) {
+        for (size_t i = 0; i < pairs.size(); i++) {
             res[i] = pair2Vec2f(pairs[i]);
         }
 
@@ -54,14 +54,14 @@ namespace sfh{
 
     std::vector<std::pair<float, float>> points2pairs(const std::vector<sf::Vector2f> &points) {
         std::vector<std::pair<float, float>> res(points.size());
-        for(size_t i = 0; i < points.size(); i++) {
+        for (size_t i = 0; i < points.size(); i++) {
             res[i] = Vec2f2pair(points[i]);
         }
 
         return res;
     }
 
-    bool pointInsideRectangle(sf::Vector2f pos, sf::RectangleShape rec) {
+    bool pointInsideRectangle(sf::Vector2f pos, const sf::RectangleShape &rec) {
         sf::Vector2f recPos = rec.getPosition();
         sf::Vector2f recSize = rec.getSize();
 
