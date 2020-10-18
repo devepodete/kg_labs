@@ -15,9 +15,25 @@ const sf::Color bgColor = sf::Color(237, 225, 242);
 
 bool drawKeyPointsLines = true;
 
-void foo(checkbox_state_t state) {
+void checkboxCallback(checkbox_state_t state) {
     //std::cout << "FOO CALLED" << std::endl;
     drawKeyPointsLines = !drawKeyPointsLines;
+}
+
+void buttonCallback(button_state_t state) {
+    switch (state) {
+        case sfe::BUTTON_HOVERED:
+            std::cout << "hovered" << std::endl;
+            break;
+        case sfe::BUTTON_PRESSED:
+            std::cout << "pressed" << std::endl;
+            break;
+        case sfe::BUTTON_UNPRESSED:
+            std::cout << "unpressed" << std::endl;
+            break;
+        default:
+            break;
+    }
 }
 
 
@@ -30,7 +46,8 @@ int main() {
     automate.setCurvePower(3);
     automate.setCurvePrecision(50);
 
-    automate.addCheckbox(sfe::Checkbox(&window, sf::Vector2f(20.0f, 20.0f), foo));
+    automate.addCheckbox(sfe::Checkbox(&window, sf::Vector2f(20.0f, 20.0f), checkboxCallback));
+    automate.addButton(sfe::Button(&window, sf::Vector2f(100, 100), sf::Vector2f(50, 50), buttonCallback));
 
     while (window.isOpen()) {
         sf::Event event;
@@ -54,6 +71,7 @@ int main() {
             }
 
             automate.drawCheckboxes();
+            automate.drawButtons();
 
             window.display();
         }

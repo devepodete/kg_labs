@@ -44,23 +44,23 @@ namespace atm {
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
                 //std::cout << "CLICK AT " << mousePos.x << " " << mousePos.y << std::endl;
-                if (state == STATE_NONE) {
-                    state = STATE_ADD_POINT;
+                if (automateState == STATE_NONE) {
+                    automateState = STATE_ADD_POINT;
 
                     for (size_t i = 0; i < keyPointsRectangles.size(); i++) {
                         if (sfh::pointInsideRectangle(mousePos, keyPointsRectangles[i])) {
-                            state = STATE_MOVE_POINT;
+                            automateState = STATE_MOVE_POINT;
 
                             curSquarePos = i;
                             break;
                         }
                     }
 
-                    if (state == STATE_ADD_POINT) {
+                    if (automateState == STATE_ADD_POINT) {
                         keyPoints.push_back(mousePos);
                         keyPointsRectangles.push_back(sfh::squarePoint(mousePos));
 
-                        state = STATE_NONE;
+                        automateState = STATE_NONE;
 
                         recreateCurve();
 
@@ -68,7 +68,7 @@ namespace atm {
                     }
                 }
 
-                if (state == STATE_MOVE_POINT) {
+                if (automateState == STATE_MOVE_POINT) {
                     if (prevMousePos != mousePos) {
                         keyPoints[curSquarePos] = mousePos;
                         keyPointsRectangles[curSquarePos].setPosition(mousePos - sfh::SQUARE_POINT_SIZE / 2.0f);
@@ -78,7 +78,7 @@ namespace atm {
 
                 prevMousePos = mousePos;
             } else {
-                state = STATE_NONE;
+                automateState = STATE_NONE;
             }
         }
 
@@ -93,8 +93,8 @@ namespace atm {
         }
 
     public:
-        // current state of automate
-        state_t state = STATE_NONE;
+        // current automateState of automate
+        state_t automateState = STATE_NONE;
 
         // curve key points
         std::vector<sf::Vector2f> keyPoints;
@@ -189,7 +189,10 @@ namespace atm {
             if (updateCheckboxes(mousePos)) {
                 return;
             }
-            //std::cout << "No checkboxes clicked. State: " << state << std::endl;
+            if (updateButtons(mousePos)) {
+                return;
+            }
+            //std::cout << "No checkboxes clicked. State: " << automateState << std::endl;
             updateMouse(mousePos);
             updateKeyboard();
         }
@@ -212,37 +215,71 @@ namespace atm {
         }
 
         bool updateCheckboxes(sf::Vector2f mousePos) {
-            for (auto &checkBox : checkBoxes) {
-                //std::cout << "Mouse Position: " << mousePos.x << " " << mousePos.y << std::endl;
-                //sf::Vector2f checkBoxPos = checkBox.getRectangle().getPosition();
-                //std::cout << "CheckBox Position: " << checkBoxPos.x << " " << checkBoxPos.y << std::endl;
-                if (sfh::pointInsideRectangle(mousePos, checkBox.getRectangle())) {
-                    if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && state == STATE_NONE) {
-                        checkBox.changeState();
-                        return true;
-                    }
+            if (automateState != STATE_NONE) {
+                //automate still doing some other job with graphics
+                return false;
+            }
+
+            for (auto &checkbox : checkboxes) {
+                if (checkbox.update(mousePos)) {
+                    return true;
                 }
             }
             return false;
         }
 
+        bool updateButtons(sf::Vector2f mousePos) {
+            if (automateState != STATE_NONE) {
+                //automate still doing some other job with graphics
+                return false;
+            }
+
+            for (auto &button : buttons) {
+                if (button.update(mousePos)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
         void addCheckbox(const sfe::Checkbox &newCheckbox) {
-             checkBoxes.push_back(newCheckbox);
+             checkboxes.push_back(newCheckbox);
         }
 
         void addCheckbox(sfe::Checkbox &&newCheckbox) {
-            checkBoxes.push_back(newCheckbox);
+            checkboxes.push_back(newCheckbox);
         }
 
         void addCheckbox(const std::vector<sfe::Checkbox> &newCheckBoxes) {
             for (auto &newCheckBox : newCheckBoxes) {
-                checkBoxes.push_back(newCheckBox);
+                checkboxes.push_back(newCheckBox);
             }
         }
 
         void addCheckbox(std::vector<sfe::Checkbox> &&newCheckBoxes) {
             for (auto &newCheckBox : newCheckBoxes) {
-                checkBoxes.push_back(newCheckBox);
+                checkboxes.push_back(newCheckBox);
+            }
+        }
+        
+        
+        void addButton(const sfe::Button &newButton) {
+            buttons.push_back(newButton);
+        }
+
+        void addButton(sfe::Button &&newButton) {
+            buttons.push_back(newButton);
+        }
+
+        void addButton(const std::vector<sfe::Button> &newButtons) {
+            for (auto &newButton : newButtons) {
+                buttons.push_back(newButton);
+            }
+        }
+
+        void addButton(std::vector<sfe::Button> &&newButtons) {
+            for (auto &newButton : newButtons) {
+                buttons.push_back(newButton);
             }
         }
 
@@ -260,8 +297,14 @@ namespace atm {
 
 
         void drawCheckboxes() {
-            for (auto &checkBox : checkBoxes) {
-                pRenderWindow->draw(checkBox.getRectangle());
+            for (auto &checkbox : checkboxes) {
+                pRenderWindow->draw(checkbox.getRectangle());
+            }
+        }
+        
+        void drawButtons() {
+            for (auto &button: buttons) {
+                pRenderWindow->draw(button.getRectangle());
             }
         }
 
@@ -272,7 +315,8 @@ namespace atm {
         unsigned curvePower;
         unsigned curvePrecision;
 
-        std::vector<sfe::Checkbox> checkBoxes;
+        std::vector<sfe::Checkbox> checkboxes;
+        std::vector<sfe::Button> buttons;
 
     private:
         bool enoughPoints() {
