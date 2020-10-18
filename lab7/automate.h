@@ -7,6 +7,7 @@
 #include <SFML/Graphics.hpp>
 #include "sfml_help.h"
 #include "curves_math.h"
+#include "sfml_extra.h"
 //#include "myprint.h"
 
 
@@ -26,7 +27,7 @@ namespace atm {
     class Automate {
     public:
         explicit Automate(sf::RenderWindow *pWindow) {
-            this->pRenderWindow = pWindow;
+            pRenderWindow = pWindow;
         }
 
         virtual void update(sf::Vector2f mousePos) {
@@ -42,7 +43,7 @@ namespace atm {
             }
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-                std::cout << "CLICK AT " << mousePos.x << " " << mousePos.y << std::endl;
+                //std::cout << "CLICK AT " << mousePos.x << " " << mousePos.y << std::endl;
                 if (state == STATE_NONE) {
                     state = STATE_ADD_POINT;
 
@@ -70,7 +71,7 @@ namespace atm {
                 if (state == STATE_MOVE_POINT) {
                     if (prevMousePos != mousePos) {
                         keyPoints[curSquarePos] = mousePos;
-                        keyPointsRectangles[curSquarePos].setPosition(mousePos - sfh::squarePointSize / 2.0f);
+                        keyPointsRectangles[curSquarePos].setPosition(mousePos - sfh::SQUARE_POINT_SIZE / 2.0f);
                         recreateCurve();
                     }
                 }
@@ -149,9 +150,15 @@ namespace atm {
         explicit SplineAutomate(sf::RenderWindow *pWindow) : Automate(pWindow) {}
 
         void recreateCurve() override {
+            //annonce("Curve recreation");
+
             std::vector<std::pair<float, float>> pairsCurve = sfh::points2pairs(keyPoints);
 
-            if (enoughPoints() && goodPower(this->curvePower)) {
+            if (enoughPoints() && goodPower(curvePower)) {
+//                std::cout << "Key Points size: " << pairsCurve.size() << std::endl;
+//                std::cout << "Power: " << curvePower << std::endl;
+//                std::cout << "Precision: " << curvePrecision << std::endl;
+
                 splineCurve.setKeyPoints(pairsCurve);
                 splineCurve.setPower(curvePower);
                 splineCurve.setPrecision(curvePrecision);
@@ -168,7 +175,7 @@ namespace atm {
                     curveVertices[i] = sf::Vertex(curvePoints[i], curveVerticesColor);
                 }
             } else {
-                annonce("Clear!", '#');
+                //annonce("Clear!", '#');
                 curveVertices.clear();
             }
 
@@ -176,6 +183,15 @@ namespace atm {
             for (size_t i = 0; i < keyPoints.size(); i++) {
                 keyPointsVertices[i] = sf::Vertex(keyPoints[i], keyPointsVerticesColor);
             }
+        }
+
+        void update(sf::Vector2f mousePos) override {
+            if (updateCheckboxes(mousePos)) {
+                return;
+            }
+            //std::cout << "No checkboxes clicked. State: " << state << std::endl;
+            updateMouse(mousePos);
+            updateKeyboard();
         }
 
         void updateKeyboard() override {
@@ -195,6 +211,42 @@ namespace atm {
             }
         }
 
+        bool updateCheckboxes(sf::Vector2f mousePos) {
+            for (auto &checkBox : checkBoxes) {
+                //std::cout << "Mouse Position: " << mousePos.x << " " << mousePos.y << std::endl;
+                //sf::Vector2f checkBoxPos = checkBox.getRectangle().getPosition();
+                //std::cout << "CheckBox Position: " << checkBoxPos.x << " " << checkBoxPos.y << std::endl;
+                if (sfh::pointInsideRectangle(mousePos, checkBox.getRectangle())) {
+                    if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && state == STATE_NONE) {
+                        checkBox.changeState();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        void addCheckbox(const sfe::Checkbox &newCheckbox) {
+             checkBoxes.push_back(newCheckbox);
+        }
+
+        void addCheckbox(sfe::Checkbox &&newCheckbox) {
+            checkBoxes.push_back(newCheckbox);
+        }
+
+        void addCheckbox(const std::vector<sfe::Checkbox> &newCheckBoxes) {
+            for (auto &newCheckBox : newCheckBoxes) {
+                checkBoxes.push_back(newCheckBox);
+            }
+        }
+
+        void addCheckbox(std::vector<sfe::Checkbox> &&newCheckBoxes) {
+            for (auto &newCheckBox : newCheckBoxes) {
+                checkBoxes.push_back(newCheckBox);
+            }
+        }
+
+
         void setCurvePower(power_t newPower) {
             curvePower = newPower;
         }
@@ -206,6 +258,23 @@ namespace atm {
             curvePrecision = newPrecision;
         }
 
+
+        void drawCheckboxes() {
+            for (auto &checkBox : checkBoxes) {
+                pRenderWindow->draw(checkBox.getRectangle());
+            }
+        }
+
+    public:
+        crv::BSpline splineCurve;
+
+    private:
+        unsigned curvePower;
+        unsigned curvePrecision;
+
+        std::vector<sfe::Checkbox> checkBoxes;
+
+    private:
         bool enoughPoints() {
             return keyPoints.size() >= 2;
         }
@@ -217,13 +286,6 @@ namespace atm {
         bool goodPrecision(precision_t precision) {
             return precision >= 1;
         }
-
-    public:
-        crv::BSpline splineCurve;
-
-    private:
-        unsigned curvePower;
-        unsigned curvePrecision;
     };
 
 } //namespace atm
