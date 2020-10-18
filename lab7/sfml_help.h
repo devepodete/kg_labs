@@ -11,13 +11,33 @@
 
 //#include "myprint.h"
 
-namespace sfh {
-    const sf::Vector2f squarePointSize = sf::Vector2f(10.0f, 10.0f);
 
-    sf::RectangleShape squarePoint(sf::Vector2f pos) {
+// helpful functions for sfml library
+namespace sfh {
+    const float SQUARE_POINT_WIDTH = 10.0f;
+    const float SQUARE_POINT_HEIGHT = 10.0f;
+    const sf::Vector2f SQUARE_POINT_SIZE = sf::Vector2f(SQUARE_POINT_WIDTH, SQUARE_POINT_HEIGHT);
+
+    enum{
+        POS_MIDDLE,
+        POS_LEFT_UP
+    };
+
+    sf::RectangleShape squarePoint(sf::Vector2f pos, int posType = POS_MIDDLE) {
         sf::RectangleShape rect;
-        rect.setPosition(pos - sfh::squarePointSize / 2.0f);
-        rect.setSize(sfh::squarePointSize);
+
+        switch (posType) {
+            case POS_MIDDLE:
+                rect.setPosition(pos - sfh::SQUARE_POINT_SIZE / 2.0f);
+                break;
+            case POS_LEFT_UP:
+                rect.setPosition(pos);
+                break;
+            default:
+                break;
+        }
+
+        rect.setSize(sfh::SQUARE_POINT_SIZE);
         rect.setFillColor(sf::Color::White);
         rect.setOutlineColor(sf::Color::Black);
         rect.setOutlineThickness(1.0f);
@@ -61,7 +81,10 @@ namespace sfh {
         return res;
     }
 
-    bool pointInsideRectangle(sf::Vector2f pos, const sf::RectangleShape &rec) {
+    template<typename TPos = sf::Vector2f>
+    bool pointInsideRectangle(TPos newPos, const sf::RectangleShape &rec) {
+        auto pos = static_cast<sf::Vector2f>(newPos);
+
         sf::Vector2f recPos = rec.getPosition();
         sf::Vector2f recSize = rec.getSize();
 

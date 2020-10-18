@@ -9,11 +9,12 @@
 #include <optional>
 
 #include "myprint.h"
-
+#include "math_help.h"
 
 typedef int precision_t;
 typedef int power_t;
 typedef int interval_t;
+
 
 std::pair<float, float> operator*(float f, std::pair<float, float> p) {
     return {f * p.first, f * p.second};
@@ -22,48 +23,6 @@ std::pair<float, float> operator*(float f, std::pair<float, float> p) {
 std::pair<float, float> operator+(std::pair<float, float> p1, std::pair<float, float> p2) {
     return {p1.first + p2.first, p1.second + p2.second};
 }
-
-
-namespace math {
-
-    //return evenly spaced numbers over a specified interval
-    std::vector<float> linspace(float t1, float t2, unsigned count = 100) {
-        if (count == 0) {
-            return {};
-        }
-
-        if (count == 1) {
-            return {t1};
-        }
-
-        if (count == 2) {
-            return {t1, t2};
-        }
-
-        bool reverse = false;
-        if (t1 > t2) {
-            std::swap(t1, t2);
-            reverse = true;
-        }
-
-        std::vector<float> res(0);
-
-        float distance = std::abs(t1 - t2);
-        float step = (distance) / static_cast<float>(count - 1);
-
-        float cur = t1;
-        while (cur <= t2 || std::abs(cur - t2) < 1e-6) {
-            res.push_back(cur);
-            cur += step;
-        }
-
-        if (reverse) {
-            std::reverse(res.begin(), res.end());
-        }
-        return res;
-    }
-
-} //namespace math
 
 
 namespace crv {
@@ -180,23 +139,23 @@ namespace crv {
                 precision_t precision = defaultPrecision) {
 
             setKeyPoints(keyPoints);
-            this->setPower(power);
+            setPower(power);
             setPrecision(precision);
         }
 
         void calculateCurve() override {
-            std::cout << std::string(10, '-') + '\n';
-            std::cout << "calculating curve with " << keyPoints.size() << " key points" << std::endl;
-            std::cout << "k: " << power << std::endl;
-            std::cout << std::string(10, '-') + '\n';
+//            std::cout << std::string(10, '-') + '\n';
+//            std::cout << "calculating curve with " << keyPoints.size() << " key points" << std::endl;
+//            std::cout << "k: " << power << std::endl;
+//            std::cout << std::string(10, '-') + '\n';
 
             _calculateSplineSegments();
-            annonce("SPLINE SEGMENTS CALCULATED");
+            //annonce("SPLINE SEGMENTS CALCULATED");
 
-            // do not count middle points twice
+            // points between key points + key points
             points.resize((n - power + 2) * (precision - 2) + (n - power + 3));
-            std::cout << "points size: " << points.size() << std::endl;
-            std::cout << "n: " << n << " power: " << power << " precision: " << precision << std::endl;
+            //std::cout << "points size: " << points.size() << std::endl;
+            //std::cout << "n: " << n << " power: " << power << " precision: " << precision << std::endl;
             for (auto &point : points) {
                 point = {0.0f, 0.0f};
             }
@@ -207,13 +166,14 @@ namespace crv {
                     throw std::runtime_error("empty spline segment");
                 }
 
-//                std::cout << "splineSegment intervals : ";
+//                std::cout << i << " splineSegment intervals : ";
 //                for (auto &part : splineSegments[i].parts) {
 //                    std::cout << part.interval << " ";
 //                }
 //                std::cout << std::endl;
 
                 std::vector<float> mergedPoints = _mergeSplineSegmentParts(splineSegments[i]);
+                //print(mergedPoints, "merged points of " + std::to_string(i));
                 //std::cout << "Points merged" << std::endl;
 
                 int tVal = t[splineSegments[i].parts[0].interval.first];
@@ -225,8 +185,9 @@ namespace crv {
                     points[idx + begin] = points[idx + begin] + mergedPoints[idx] * keyPoints[i];
                 }
             }
+            //print(points, "points");
 
-            annonce("CURVE CREATED SUCCESSFULLY");
+            //annonce("CURVE CREATED SUCCESSFULLY");
         }
 
         void setPower(power_t newPower) {
@@ -277,18 +238,20 @@ namespace crv {
         void _calculateSplineSegments() {
             _calculateOpenKnotVector();
 
-            print(t, "open knots");
+            //print(t, "open knots");
             // N[i][k] = (t-t[i])/(t[i+k-1]-t[i]) * N[i][k-1] + (t[i+k]-t)/(t[i+k]-t[i+1]) * N[i+1][k-1]
             // 1) maximum first index is n+k-2 (n - index of last point, indexing from 0)
             //    for example: if we have 8 points (indexes from 0 to 7) and power = 6 then
             //    last N is N[7][6], the maximum first index that we will calculate is 7+6-1=12 (N[12][1]),
             //    which is located on the rightest branch of the N[7][6] calculation tree
-            std::vector<std::vector<_baseSpline>> N(keyPoints.size() + power - 1, std::vector<_baseSpline>(power));
+            //std::vector<std::vector<_baseSpline>> N(keyPoints.size() + power - 1, std::vector<_baseSpline>(power));
+            std::vector<std::vector<_baseSpline>> N(t.size() - 1, std::vector<_baseSpline>(power));
 
-            std::cout << "N size: " << N.size() << std::endl;
-            std::cout << "t size: " << t.size() << std::endl;
+            //std::cout << "N size: " << N.size() << std::endl;
+            //std::cout << "t size: " << t.size() << std::endl;
 
             for (size_t i = 0; i < N.size(); i++) {
+                //std::cout << "# initializing N[" << i << "][" << 0 << "]\n";
                 N[i][0].parts.resize(1);
                 N[i][0].parts[0].tempPoints.resize(precision);
                 for (size_t j = 0; j < precision; j++) {
@@ -297,21 +260,27 @@ namespace crv {
                 N[i][0].parts[0].interval.first = i;
                 N[i][0].parts[0].interval.second = i + 1;
             }
-            std::cout << "N initialized" << std::endl;
+            //std::cout << "N initialized" << std::endl;
 
 
             int border = static_cast<int>(N.size()) - 1;
             for (int curPower = 1; curPower < power; curPower++) {
-                for (size_t i = 0; i < border; i++) {
-                    std::cout << "########\n";
-                    std::cout << "# calculating N[" << i << "][" << curPower << "]\n";
+                for (int i = 0; i < border; i++) {
+                    //std::cout << "########\n";
+                    //std::cout << "\n# calculating N[" << i << "][" << curPower << "]\n";
                     N[i][curPower].parts.resize(0);
                     _addBaseSpline(N[i][curPower - 1], N[i][curPower], i, curPower + 1, LEFT_SPLINE);
-                    std::cout << "# left spline done\n";
+                    //std::cout << "# left spline done\n";
                     _addBaseSpline(N[i + 1][curPower - 1], N[i][curPower], i, curPower + 1, RIGHT_SPLINE);
-                    std::cout << "# right spline done\n";
-                    std::cout << "# N[" << i << "][" << curPower << "] calculated\n";
-                    std::cout << "########\n\n";
+//                    std::cout << "# right spline done\n";
+//                    std::cout << "# N[" << i << "][" << curPower << "] calculated\n";
+//                    std::cout << "########\n\n";
+//                    std::cout << "N[" << i << "][" << curPower << "] parts:" << std::endl;
+//                    for (auto &part : N[i][curPower].parts) {
+//                        std::cout << "interval: " << part.interval << std::endl;
+//                        std::cout << part.tempPoints << std::endl;
+//                    }
+//                    std::cout << std::string(10, '-') << std::endl;
                 }
                 border--;
             }
@@ -322,14 +291,20 @@ namespace crv {
             }
         }
 
-        void _addBaseSpline(const _baseSpline &src, _baseSpline &dest, size_t i, power_t k, int flag) {
+        void _addBaseSpline(const _baseSpline &src, _baseSpline &dest, int i, power_t k, int flag) {
+//            if (flag == LEFT_SPLINE) {
+//                std::cout << "left ";
+//            } else {
+//                std::cout << "right ";
+//            }
+//            std::cout << "src.parts.size() = " << src.parts.size() << std::endl;
+
             for (auto &srcPart : src.parts) {
-                std::cout << "src.parts.size() = " << src.parts.size() << std::endl;
-                std::cout << "srcPart interval -> " << srcPart.interval.first << " : " << srcPart.interval.second
-                          << std::endl;
+                //std::cout << "srcPart interval -> " << srcPart.interval.first << " : " << srcPart.interval.second
+                //          << std::endl;
                 if (t[srcPart.interval.first] != t[srcPart.interval.second]) {
-                    std::cout << "t values -> " << t[srcPart.interval.first] << " : " << t[srcPart.interval.second]
-                              << std::endl;
+                    //std::cout << "t values -> " << t[srcPart.interval.first] << " : " << t[srcPart.interval.second]
+                    //          << std::endl;
                     _baseSplinePart newPart;
                     newPart.interval = srcPart.interval;
                     newPart.tempPoints = _createBaseSplinePartPoints(srcPart, i, k, flag);
@@ -342,6 +317,8 @@ namespace crv {
                     } else {
                         dest.parts.push_back(newPart);
                     }
+                } else {
+                    //std::cout << "t has same values" << std::endl;
                 }
             }
         }
@@ -356,15 +333,17 @@ namespace crv {
             return {};
         }
 
-        std::vector<float> _createBaseSplinePartPoints(const _baseSplinePart &part, size_t i, size_t k, int flag) {
+        std::vector<float> _createBaseSplinePartPoints(const _baseSplinePart &part, int i, power_t k, int flag) {
             std::vector<float> res(precision);
 
             auto l = static_cast<float>(t[part.interval.first]);
             auto r = static_cast<float>(t[part.interval.second]);
             std::vector<float> tempT = math::linspace(l, r, precision);
 
-            std::cout << "i: " << i << ", k: " << k << std::endl;
-            std::cout << "_createBaseSplinePartPoints begin -> " << std::flush;
+//            std::cout << "l: " << l << ", r: " << r << std::endl;
+//            print(tempT, "tempT");
+//            std::cout << "i: " << i << ", k: " << k << std::endl;
+//            std::cout << "_createBaseSplinePartPoints begin -> " << std::flush;
             for (size_t j = 0; j < res.size(); j++) {
                 if (flag == LEFT_SPLINE) {
                     if (t[i + k - 1] == t[i]) {
@@ -373,14 +352,20 @@ namespace crv {
                     res[j] = (tempT[j] - t[i]) / static_cast<float>(t[i + k - 1] - t[i]) * part.tempPoints[j];
                 } else {
                     if (t[i + k] == t[i + 1]) {
-                        std::cout << "t[" << i + k << "] = " << t[i + k] << ", t[" << i + 1 << "] = " << t[i + 1]
-                                  << std::endl;
+//                        std::cout << "t[" << i + k << "] = " << t[i + k] << ", t[" << i + 1 << "] = " << t[i + 1]
+//                                  << std::endl;
                         throw std::runtime_error("got equal t at right");
                     }
-                    res[j] = (t[i + k] - tempT[j]) / static_cast<float>(t[i + k] - t[i + 1]) * part.tempPoints[j];
+//                    std::cout << "t[i+k] = " << t[i+k] << ", tempT[j] = " << tempT[j] << std::endl;
+//                    std::cout << "t[i+k]-TempT[j] = " << t[i + k] - tempT[j]
+//                    << ", t[i + k] - t[i + 1] = " << t[i + k] - t[i + 1]
+//                    << ", part.tempPoints[j] = " << part.tempPoints[j] << std::endl;
+                    res[j] = (t[i + k] - tempT[j]) / (float)(t[i + k] - t[i + 1]) * part.tempPoints[j];
                 }
             }
-            std::cout << "end\n";
+            //print(res, "res");
+            //std::cout << std::endl;
+            //std::cout << "end\n";
 
             return res;
         }
