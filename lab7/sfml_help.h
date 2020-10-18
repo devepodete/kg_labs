@@ -23,7 +23,8 @@ namespace sfh {
         POS_LEFT_UP
     };
 
-    sf::RectangleShape squarePoint(sf::Vector2f pos, int posType = POS_MIDDLE) {
+    sf::RectangleShape squarePoint(sf::Vector2f pos, int posType = POS_MIDDLE,
+                                   sf::Color fillColor = sf::Color::White) {
         sf::RectangleShape rect;
 
         switch (posType) {
@@ -38,7 +39,7 @@ namespace sfh {
         }
 
         rect.setSize(sfh::SQUARE_POINT_SIZE);
-        rect.setFillColor(sf::Color::White);
+        rect.setFillColor(fillColor);
         rect.setOutlineColor(sf::Color::Black);
         rect.setOutlineThickness(1.0f);
 
