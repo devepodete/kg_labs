@@ -45,16 +45,18 @@ namespace crv {
         static const precision_t defaultPrecision = 100;
 
     protected:
-        virtual void checkPrecision(precision_t newPrecision) {
+        virtual bool checkPrecision(precision_t newPrecision) {
             if (newPrecision <= 0) {
-                throw std::runtime_error("Curve: precision must be greater than 0");
+                return false;
             }
+            return true;
         }
 
-        virtual void checkPoints(const std::vector<std::pair<float, float>> &toCheck) {
+        virtual bool checkPoints(const std::vector<std::pair<float, float>> &toCheck) {
             if (toCheck.empty()) {
-                throw std::runtime_error("Curve: points vector is empty");
+                return false;
             }
+            return true;
         }
     };
 
@@ -71,14 +73,20 @@ namespace crv {
             setPrecision(precision);
         }
 
-        void setKeyPoints(const std::vector<std::pair<float, float>> &newKeyPoints) {
-            checkPoints(newKeyPoints);
-            this->keyPoints = newKeyPoints;
+        bool setKeyPoints(const std::vector<std::pair<float, float>> &newKeyPoints) {
+            if (checkPoints(newKeyPoints)) {
+                this->keyPoints = newKeyPoints;
+                return true;
+            }
+            return false;
         }
 
-        void setPrecision(precision_t newPrecision) {
-            checkPrecision(newPrecision);
-            this->precision = newPrecision;
+        bool setPrecision(precision_t newPrecision) {
+            if (checkPrecision(newPrecision)) {
+                this->precision = newPrecision;
+                return true;
+            }
+            return false;
         }
 
 
@@ -115,16 +123,18 @@ namespace crv {
             }
         }
 
-        void checkPrecision(precision_t precision) override {
+        bool checkPrecision(precision_t precision) override {
             if (precision < 2) {
-                throw std::runtime_error("Bezier: precision must be greater than 1");
+                return false;
             }
+            return true;
         }
 
-        void checkPoints(const std::vector<std::pair<float, float>> &toCheck) override {
+        bool checkPoints(const std::vector<std::pair<float, float>> &toCheck) override {
             if (toCheck.size() < 2) {
-                throw std::runtime_error("Bezier: can not create curve for less than 2 points");
+                return false;
             }
+            return true;
         }
     };
 
@@ -142,6 +152,7 @@ namespace crv {
             setPower(power);
             setPrecision(precision);
         }
+
 
         void calculateCurve() override {
 //            std::cout << std::string(10, '-') + '\n';
@@ -190,27 +201,48 @@ namespace crv {
             //annonce("CURVE CREATED SUCCESSFULLY");
         }
 
-        void setPower(power_t newPower) {
-            checkPower(newPower);
-            this->power = newPower;
+        bool setPower(power_t newPower) {
+            if(checkPower(newPower)) {
+                this->power = newPower;
+                return true;
+            }
+            return false;
         }
 
-        void setPrecision(precision_t newPrecision) {
-            checkPrecision(newPrecision);
-            this->precision = newPrecision;
+        power_t getPower() {
+            return power;
         }
 
-        void setKeyPoints(const std::vector<std::pair<float, float>> &newKeyPoints) {
-            checkPoints(newKeyPoints);
-            this->keyPoints = newKeyPoints;
-            this->n = static_cast<int>(newKeyPoints.size()) - 1;
+        bool setPrecision(precision_t newPrecision) {
+            if (checkPrecision(newPrecision)) {
+                this->precision = newPrecision;
+                return true;
+            }
+            return false;
+        }
+
+        precision_t getPrecision() {
+            return precision;
+        }
+
+        bool setKeyPoints(const std::vector<std::pair<float, float>> &newKeyPoints) {
+            if (checkPoints(newKeyPoints)) {
+                this->keyPoints = newKeyPoints;
+                this->n = static_cast<int>(newKeyPoints.size()) - 1;
+                return true;
+            }
+            return false;
+        }
+
+        power_t maxAvailablePower() {
+            return keyPoints.size();
         }
 
     private:
         // n - index of last point (indexing begins from 0)
         // power - power of curve
         int n;
-        power_t power;
+        power_t power = 2;
 
         // open uniform knot vector (like [0, 0, 0, 1, 2, 2, 2])
         std::vector<interval_t> t;
@@ -402,16 +434,18 @@ namespace crv {
             return res;
         }
 
-        void checkPower(power_t newPower) {
+        bool checkPower(power_t newPower) {
             if (newPower < 2 || newPower > keyPoints.size()) {
-                throw std::runtime_error("Failed to create B-spline with such power");
+                return false;
             }
+            return true;
         }
 
-        void checkPoints(const std::vector<std::pair<float, float>> &toCheck) override {
+        bool checkPoints(const std::vector<std::pair<float, float>> &toCheck) override {
             if (toCheck.size() < 2) {
-                throw std::runtime_error("B-spline: can not create curve for less than 2 points");
+                return false;
             }
+            return true;
         }
     };
 

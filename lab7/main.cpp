@@ -43,7 +43,7 @@ int main() {
     window.setPosition(sf::Vector2i(200, 10));
 
     atm::SplineAutomate automate(&window);
-    automate.setCurvePower(3);
+    //automate.setCurvePower(3);
     automate.setCurvePrecision(50);
 
     automate.addCheckbox(sfe::Checkbox(&window, sf::Vector2f(20.0f, 20.0f), checkboxCallback));

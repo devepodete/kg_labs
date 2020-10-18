@@ -47,18 +47,34 @@ namespace atm {
                 if (automateState == STATE_NONE) {
                     automateState = STATE_ADD_POINT;
 
+                    bool clickInsideSquare = false;
                     for (size_t i = 0; i < keyPointsRectangles.size(); i++) {
                         if (sfh::pointInsideRectangle(mousePos, keyPointsRectangles[i])) {
+                            clickInsideSquare = true;
+
                             automateState = STATE_MOVE_POINT;
 
-                            curSquarePos = i;
+                            if (curActiveSquarePos.has_value()) {
+                                keyPointsRectangles[curActiveSquarePos.value()].setFillColor(keyPointsDefaultColor);
+                            }
+
+                            curActiveSquarePos = i;
+                            curMovingSquarePos = i;
                             break;
                         }
                     }
 
+                    if (clickInsideSquare) {
+                        keyPointsRectangles[curActiveSquarePos.value()].setFillColor(keyPointsChosenColor);
+                    } else if (curActiveSquarePos.has_value()) {
+                        keyPointsRectangles[curActiveSquarePos.value()].setFillColor(keyPointsDefaultColor);
+                        curActiveSquarePos.reset();
+                    }
+
                     if (automateState == STATE_ADD_POINT) {
                         keyPoints.push_back(mousePos);
-                        keyPointsRectangles.push_back(sfh::squarePoint(mousePos));
+                        keyPointsRectangles.push_back(sfh::squarePoint(mousePos, sfh::POS_MIDDLE,
+                                                                       keyPointsDefaultColor));
 
                         automateState = STATE_NONE;
 
@@ -69,9 +85,11 @@ namespace atm {
                 }
 
                 if (automateState == STATE_MOVE_POINT) {
-                    if (prevMousePos != mousePos) {
-                        keyPoints[curSquarePos] = mousePos;
-                        keyPointsRectangles[curSquarePos].setPosition(mousePos - sfh::SQUARE_POINT_SIZE / 2.0f);
+                    if (mousePos != prevMousePos) {
+                        keyPoints[curMovingSquarePos.value()] = mousePos;
+                        keyPointsRectangles[curMovingSquarePos.value()].setPosition(mousePos - sfh::SQUARE_POINT_SIZE / 2.0f);
+                        keyPointsRectangles[curMovingSquarePos.value()].setFillColor(keyPointsMoveColor);
+
                         recreateCurve();
                     }
                 }
@@ -79,6 +97,13 @@ namespace atm {
                 prevMousePos = mousePos;
             } else {
                 automateState = STATE_NONE;
+
+                if (curMovingSquarePos.has_value()) {
+                    keyPointsRectangles[curMovingSquarePos.value()].setFillColor(keyPointsDefaultColor);
+                }
+                if (curActiveSquarePos.has_value()) {
+                    keyPointsRectangles[curActiveSquarePos.value()].setFillColor(keyPointsChosenColor);
+                }
             }
         }
 
@@ -111,11 +136,22 @@ namespace atm {
 
         // color of lines between key points
         sf::Color keyPointsVerticesColor = sf::Color::Red;
+
+        // colors of key points
+        sf::Color keyPointsDefaultColor = sf::Color::White;
+        sf::Color keyPointsMoveColor = sf::Color(180, 180, 180);
+        sf::Color keyPointsChosenColor = sf::Color::Yellow;
+
     protected:
         sf::RenderWindow *pRenderWindow;
 
         sf::Vector2f prevMousePos;
-        size_t curSquarePos;
+
+        // index of currently moving square
+        std::optional<size_t> curMovingSquarePos;
+
+        // index of currently active square (which was selected by LMC)
+        std::optional<size_t> curActiveSquarePos;
     };
 
 
@@ -152,31 +188,21 @@ namespace atm {
         void recreateCurve() override {
             //annonce("Curve recreation");
 
+            if (keyPoints.size() < 2) {
+                return;
+            }
+
             std::vector<std::pair<float, float>> pairsCurve = sfh::points2pairs(keyPoints);
 
-            if (enoughPoints() && goodPower(curvePower)) {
-//                std::cout << "Key Points size: " << pairsCurve.size() << std::endl;
-//                std::cout << "Power: " << curvePower << std::endl;
-//                std::cout << "Precision: " << curvePrecision << std::endl;
+            splineCurve.setKeyPoints(pairsCurve);
+            splineCurve.setPower(curvePower);
+            splineCurve.setPrecision(curvePrecision);
+            splineCurve.calculateCurve();
 
-                splineCurve.setKeyPoints(pairsCurve);
-                splineCurve.setPower(curvePower);
-                splineCurve.setPrecision(curvePrecision);
-                splineCurve.calculateCurve();
-
-                //std::cout << "curve power: " << curvePower << std::endl;
-                //std::cout << "curve precision: " << curvePrecision << std::endl;
-                //print(splineCurve.points, "spline curve points");
-                //print(keyPoints, "keyPoints");
-
-                std::vector<sf::Vector2f> curvePoints = sfh::pairs2points(splineCurve.points);
-                curveVertices.resize(curvePoints.size());
-                for (size_t i = 0; i < curvePoints.size(); i++) {
-                    curveVertices[i] = sf::Vertex(curvePoints[i], curveVerticesColor);
-                }
-            } else {
-                //annonce("Clear!", '#');
-                curveVertices.clear();
+            std::vector<sf::Vector2f> curvePoints = sfh::pairs2points(splineCurve.points);
+            curveVertices.resize(curvePoints.size());
+            for (size_t i = 0; i < curvePoints.size(); i++) {
+                curveVertices[i] = sf::Vertex(curvePoints[i], curveVerticesColor);
             }
 
             keyPointsVertices.resize(keyPoints.size());
@@ -198,21 +224,46 @@ namespace atm {
         }
 
         void updateKeyboard() override {
+            if (!goodPower(curvePower)) {
+                setCurvePower(2);
+            }
+
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
                 if (goodPower(curvePower+1)) {
                     setCurvePower(curvePower+1);
                     recreateCurve();
-                    std::cout << "CURVE POWER INCREASED: " << curvePower << std::endl;
+                    //std::cout << "CURVE POWER INCREASED: " << curvePower << std::endl;
                 }
             }
+
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
                 if (goodPower(curvePower-1)) {
                     setCurvePower(curvePower-1);
                     recreateCurve();
-                    std::cout << "CURVE POWER DECREASED: " << curvePower << std::endl;
+                    //std::cout << "CURVE POWER DECREASED: " << curvePower << std::endl;
+                }
+            }
+
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Delete)) {
+                if (curActiveSquarePos.has_value()) {
+                    keyPoints.erase(keyPoints.begin()+curActiveSquarePos.value());
+                    keyPointsRectangles.erase(keyPointsRectangles.begin()+curActiveSquarePos.value());
+                    keyPointsVertices.erase(keyPointsVertices.begin()+curActiveSquarePos.value());
+
+                    curActiveSquarePos.reset();
+
+                    if (keyPoints.size() >= 2) {
+                        setCurvePower(keyPoints.size());
+                    } else {
+                        setCurvePower(2);
+                        curveVertices.clear();
+                    }
+
+                    recreateCurve();
                 }
             }
         }
+
 
         bool updateCheckboxes(sf::Vector2f mousePos) {
             if (automateState != STATE_NONE) {
@@ -319,10 +370,6 @@ namespace atm {
         std::vector<sfe::Button> buttons;
 
     private:
-        bool enoughPoints() {
-            return keyPoints.size() >= 2;
-        }
-
         bool goodPower(power_t newPower) {
             return newPower <= keyPoints.size() && newPower >= 2;
         }
