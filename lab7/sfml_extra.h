@@ -27,7 +27,7 @@ namespace sfe {
     public:
         explicit Checkbox(sf::RenderWindow *pWindow) {
             pRenderWindow = pWindow;
-            changeState();
+            //changeState();
         }
 
         Checkbox(sf::RenderWindow *pWindow, sf::Vector2f pos) : Checkbox(pWindow){
@@ -46,8 +46,11 @@ namespace sfe {
         }
 
         void setPos(sf::Vector2f pos) {
-            rectangleShape = sfh::squarePoint(pos, sfh::POS_LEFT_UP);
-            changeColor();
+            if (state == CHECKBOX_ACTIVE) {
+                rectangleShape = sfh::squarePoint(pos, sfh::POS_LEFT_UP, CHECKBOX_ACTIVE_COLOR);
+            } else if (state == CHECKBOX_INACTIVE) {
+                rectangleShape = sfh::squarePoint(pos, sfh::POS_LEFT_UP, CHECKBOX_INACTIVE_COLOR);
+            }
         }
 
         void changeState() {
@@ -62,14 +65,14 @@ namespace sfe {
                     break;
             }
 
-            changeColor();
+            setColor();
 
             if (callback != nullptr) {
                 callback(state);
             }
         }
 
-        void changeColor() {
+        void setColor() {
             switch (state) {
                 case CHECKBOX_ACTIVE:
                     rectangleShape.setFillColor(CHECKBOX_ACTIVE_COLOR);
