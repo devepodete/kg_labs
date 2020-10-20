@@ -2,52 +2,74 @@
 #include <string>
 #include <SFML/Graphics.hpp>
 
+
 #include "automate.h"
+
 #include "sfml_extra.h"
 #include "myprint.h"
 
 const uint32_t windowWidth = 900;
 const uint32_t windowHeight = 600;
-const sf::Vector2f windowMiddle = sf::Vector2f(static_cast<float>(windowWidth) / 2,
-                                               static_cast<float>(windowHeight) / 2);
+
 
 const sf::Color bgColor = sf::Color(237, 225, 242);
 
 bool drawKeyPointsLines = true;
+bool increasePower = false;
+bool decreasePower = false;
+
 
 void checkboxCallback(checkbox_state_t state) {
     //std::cout << "FOO CALLED" << std::endl;
     drawKeyPointsLines = !drawKeyPointsLines;
 }
 
-void buttonCallback(button_state_t state) {
-    switch (state) {
-        case sfe::BUTTON_HOVERED:
-            std::cout << "hovered" << std::endl;
-            break;
-        case sfe::BUTTON_PRESSED:
-            std::cout << "pressed" << std::endl;
-            break;
-        case sfe::BUTTON_UNPRESSED:
-            std::cout << "unpressed" << std::endl;
-            break;
-        default:
-            break;
+
+void increasePowerCallback(button_state_t state) {
+    if (state == sfe::BUTTON_PRESSED) {
+        //std::cout << "increase callback" << std::endl;
+        increasePower = true;
+    }
+}
+
+void decreasePowerCallback(button_state_t state) {
+    if (state == sfe::BUTTON_PRESSED) {
+        decreasePower = true;
     }
 }
 
 
 int main() {
+    sf::Font mainFont;
+    if (!mainFont.loadFromFile("fonts/FreeMono.ttf")) {
+        std::cout << "Failed to load font\n";
+        return 0;
+    }
+
+
     sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight),
                             "Made by @devepodete");
     window.setPosition(sf::Vector2i(200, 10));
 
+
     atm::SplineAutomate automate(&window);
-    //automate.setCurvePower(3);
     automate.setCurvePrecision(50);
 
-    automate.addCheckbox(sfe::Checkbox(&window, sf::Vector2f(20.0f, 20.0f), checkboxCallback));
-    automate.addButton(sfe::Button(&window, sf::Vector2f(100, 100), sf::Vector2f(50, 50), buttonCallback));
+
+    automate.addCheckbox(sfe::Checkbox(&window, {20.0f, 20.0f}, checkboxCallback));
+
+
+    sfe::Button button1 = sfe::Button(&window, {10.0f, 50.0f}, increasePowerCallback);
+    button1.setText(mainFont, "Increase");
+    sfe::Button button2 = sfe::Button(&window, {10.0f, 90.0f}, decreasePowerCallback);
+    button2.setText(mainFont, "Decrease");
+
+    automate.addButton({button1, button2});
+
+    sf::Text powerText("", mainFont);
+    powerText.setOutlineThickness(0.0f);
+    powerText.setFillColor(sf::Color::Black);
+    powerText.setPosition(10.0f, 130.0f);
 
     while (window.isOpen()) {
         sf::Event event;
@@ -64,14 +86,28 @@ int main() {
                 window.draw(automate.keyPointsVertices.data(), automate.keyPointsVertices.size(), sf::LineStrip);
             }
 
+            if (increasePower) {
+                //std::cout << "curve power: " << automate.getCurvePower() << std::endl;
+                automate.checkAndSetCurvePower(automate.getCurvePower()+1);
+                increasePower = false;
+            }
+
+            if (decreasePower) {
+                automate.checkAndSetCurvePower(automate.getCurvePower()-1);
+                decreasePower = false;
+            }
+
             window.draw(automate.curveVertices.data(), automate.curveVertices.size(), sf::LineStrip);
 
-            for (size_t i = 0; i < automate.keyPointsRectangles.size(); i++) {
-                window.draw(automate.keyPointsRectangles[i]);
+            for (const auto &keyPointsRectangle : automate.keyPointsRectangles) {
+                window.draw(keyPointsRectangle);
             }
 
             automate.drawCheckboxes();
             automate.drawButtons();
+
+            powerText.setString(std::to_string(automate.getCurvePower()));
+            window.draw(powerText);
 
             window.display();
         }

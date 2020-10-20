@@ -4,12 +4,16 @@
 
 #pragma once
 
+
+#include <algorithm>
 #include <SFML/Graphics.hpp>
+
 #include "sfml_help.h"
 
 
 typedef unsigned checkbox_state_t;
 typedef unsigned button_state_t;
+
 
 // helpfull extra classes for sfml library
 namespace sfe {
@@ -37,7 +41,7 @@ namespace sfe {
         }
 
         Checkbox(sf::RenderWindow *pWindow, sf::Vector2f pos,
-                 void (*newCallback)(checkbox_state_t curState)) : Checkbox(pWindow, pos) {
+                 void (*newCallback)(checkbox_state_t)) : Checkbox(pWindow, pos) {
 
             setCallbackFunction(newCallback);
         }
@@ -118,7 +122,7 @@ namespace sfe {
 
     private:
         sf::RenderWindow *pRenderWindow = nullptr;
-        void (*callback)(checkbox_state_t curState) = nullptr;
+        void (*callback)(checkbox_state_t) = nullptr;
 
         //left up corner position
         sf::RectangleShape rectangleShape;
@@ -131,6 +135,7 @@ namespace sfe {
     class Button {
     public:
         explicit Button(sf::RenderWindow *pWindow) {
+            //std::cout << "Default constructor called" << std::endl;
             pRenderWindow = pWindow;
         }
 
@@ -142,14 +147,58 @@ namespace sfe {
             setSize(size);
         }
 
+        Button(sf::RenderWindow *pWindow, sf::Vector2f pos, void (*newCallback)(button_state_t)) :
+            Button(pWindow, pos, sf::Vector2f(0, 0), newCallback) {}
+
         Button(sf::RenderWindow *pWindow, sf::Vector2f pos, sf::Vector2f size,
-        void (*newCallback)(button_state_t newState)) : Button(pWindow, pos, size) {
+        void (*newCallback)(button_state_t)) : Button(pWindow, pos, size) {
 
             setCallbackFunction(newCallback);
         }
 
+
+        void setText(const sf::Font &newFont, const std::string &newString, unsigned characterSize = 30,
+                     float paddingX = 3.0f, float paddingY = 3.0f, float outlineThickness = 0.0f,
+                     sf::Color textColor = sf::Color::Black, sf::Color outlineColor = sf::Color::Red) {
+
+            text.setFont(newFont);
+            text.setString(newString);
+
+            text.setFillColor(textColor);
+            text.setOutlineColor(outlineColor);
+            text.setOutlineThickness(outlineThickness);
+
+            float buttonX = rectangleShape.getPosition().x;
+            float buttonY = rectangleShape.getPosition().y;
+
+            //float dragUp = (float)hasCapitalLetters(newString) * (float)characterSize / 4.0f;
+            float dragUp = 10.0f;
+            text.setPosition(buttonX + paddingX, buttonY + paddingY - dragUp);
+            text.setCharacterSize(characterSize);
+
+            sf::Vector2f rectangleSize = {2*paddingX + (float)(newString.size()*characterSize)*0.6f,
+                                          2*paddingY + (float)characterSize - dragUp};
+
+            setSize(rectangleSize);
+
+            //std::cout << "button pos: " << rectangleShape.getPosition() << std::endl;
+            //std::cout << "button size: " << rectangleShape.getSize() << std::endl;
+//            sf::Color cur = rectangleShape.getFillColor();
+//            if (cur == sf::Color::White){
+//                std::cout << "WHITE COLOR" << std::endl;
+//            } else if (cur == BUTTON_UNPRESSED_COLOR) {
+//                std::cout << "UNPRESSED COLOR" << std::endl;
+//            } else {
+//                std::cout << "OTHER COLOR" << std::endl;
+//            }
+
+            //std::cout << "text pos: " << text.getPosition() << std::endl;
+
+        }
+
         void setPos(sf::Vector2f pos) {
             rectangleShape = sfh::squarePoint(pos, sfh::POS_LEFT_UP);
+            setColor();
         }
 
         void setSize(sf::Vector2f size) {
@@ -157,7 +206,7 @@ namespace sfe {
         }
 
         // bind function which will be called if chekbox state changes
-        void setCallbackFunction(void (*newCallback)(button_state_t newState)) {
+        void setCallbackFunction(void (*newCallback)(button_state_t)) {
             callback = newCallback;
         }
 
@@ -165,30 +214,24 @@ namespace sfe {
             state = newState;
         }
 
-        button_state_t getState() {
-            return state;
-        }
-
         void setColor() {
             switch (state) {
                 case BUTTON_PRESSED:
+                    //std::cout << "BUTTON PRESSED COLOR SET" << std::endl;
                     rectangleShape.setFillColor(BUTTON_PRESSED_COLOR);
                     break;
                 case BUTTON_UNPRESSED:
+                    //std::cout << "BUTTON UNPRESSED COLOR SET" << std::endl;
                     rectangleShape.setFillColor(BUTTON_UNPRESSED_COLOR);
                     break;
                 case BUTTON_HOVERED:
+                    //std::cout << "BUTTON HOVERED COLOR SET" << std::endl;
                     rectangleShape.setFillColor(BUTTON_HOVERED_COLOR);
                     break;
                 default:
                     rectangleShape.setFillColor(sf::Color::Black);
             }
         }
-
-        sf::RectangleShape getRectangle() {
-            return rectangleShape;
-        }
-
 
         void update(button_state_t newState) {
             changeState(newState);
@@ -237,6 +280,22 @@ namespace sfe {
             return false;
         }
 
+        static bool hasCapitalLetters(const std::string &s) {
+            return std::any_of(s.begin(), s.end(), [](char c) {return c >= 'A' && c <= 'Z';});
+        }
+
+        sf::RectangleShape getRectangle() {
+            return rectangleShape;
+        }
+
+        sf::Text getText() {
+            return text;
+        }
+
+        button_state_t getState() const {
+            return state;
+        }
+
     public:
         sf::Color BUTTON_PRESSED_COLOR = sf::Color(187, 192, 194);
         sf::Color BUTTON_UNPRESSED_COLOR = sf::Color(236, 241, 243);
@@ -244,10 +303,12 @@ namespace sfe {
 
     private:
         sf::RenderWindow *pRenderWindow = nullptr;
-        void (*callback)(button_state_t newState) = nullptr;
+        void (*callback)(button_state_t) = nullptr;
 
         //left up corner position
         sf::RectangleShape rectangleShape;
+
+        sf::Text text;
 
         button_state_t state = BUTTON_UNPRESSED;
     };

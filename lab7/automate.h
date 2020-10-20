@@ -8,7 +8,7 @@
 #include "sfml_help.h"
 #include "curves_math.h"
 #include "sfml_extra.h"
-//#include "myprint.h"
+#include "myprint.h"
 
 
 typedef unsigned state_t;
@@ -334,9 +334,15 @@ namespace atm {
             }
         }
 
+        void checkAndSetCurvePower(power_t newPower) {
+            if (splineCurve.checkPower(newPower)) {
+                setCurvePower(newPower);
+                recreateCurve();
+            }
+        }
 
-        void setCurvePower(power_t newPower) {
-            curvePower = newPower;
+        power_t getCurvePower() const {
+            return curvePower;
         }
 
         void setCurvePrecision(precision_t newPrecision) {
@@ -356,6 +362,7 @@ namespace atm {
         void drawButtons() {
             for (auto &button: buttons) {
                 pRenderWindow->draw(button.getRectangle());
+                pRenderWindow->draw(button.getText());
             }
         }
 
@@ -370,6 +377,10 @@ namespace atm {
         std::vector<sfe::Button> buttons;
 
     private:
+        void setCurvePower(power_t newPower) {
+            curvePower = newPower;
+        }
+
         bool goodPower(power_t newPower) {
             return newPower <= keyPoints.size() && newPower >= 2;
         }
