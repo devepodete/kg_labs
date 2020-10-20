@@ -8,7 +8,6 @@
 #include <utility>
 #include <optional>
 
-#include "myprint.h"
 #include "math_help.h"
 
 typedef int precision_t;
@@ -44,19 +43,13 @@ namespace crv {
         // default value for number of curve points
         static const precision_t defaultPrecision = 100;
 
-    protected:
+    public:
         virtual bool checkPrecision(precision_t newPrecision) {
-            if (newPrecision <= 0) {
-                return false;
-            }
-            return true;
+            return newPrecision > 0;
         }
 
         virtual bool checkPoints(const std::vector<std::pair<float, float>> &toCheck) {
-            if (toCheck.empty()) {
-                return false;
-            }
-            return true;
+            return !toCheck.empty();
         }
     };
 
@@ -71,6 +64,10 @@ namespace crv {
 
             setKeyPoints(keyPoints);
             setPrecision(precision);
+        }
+
+        void calculateCurve() override {
+            calculateCurve(math::linspace(0, 1, precision));
         }
 
         bool setKeyPoints(const std::vector<std::pair<float, float>> &newKeyPoints) {
@@ -89,9 +86,12 @@ namespace crv {
             return false;
         }
 
+        bool checkPrecision(precision_t newPrecision) override {
+            return newPrecision >= 2;
+        }
 
-        void calculateCurve() override {
-            calculateCurve(math::linspace(0, 1, precision));
+        bool checkPoints(const std::vector<std::pair<float, float>> &toCheck) override {
+            return toCheck.size() >= 2;
         }
 
     private:
@@ -122,20 +122,6 @@ namespace crv {
                 dest[i] = (1 - t[i]) * left + t[i] * right;
             }
         }
-
-        bool checkPrecision(precision_t precision) override {
-            if (precision < 2) {
-                return false;
-            }
-            return true;
-        }
-
-        bool checkPoints(const std::vector<std::pair<float, float>> &toCheck) override {
-            if (toCheck.size() < 2) {
-                return false;
-            }
-            return true;
-        }
     };
 
 
@@ -155,62 +141,34 @@ namespace crv {
 
 
         void calculateCurve() override {
-//            std::cout << std::string(10, '-') + '\n';
-//            std::cout << "calculating curve with " << keyPoints.size() << " key points" << std::endl;
-//            std::cout << "k: " << power << std::endl;
-//            std::cout << std::string(10, '-') + '\n';
-
             _calculateSplineSegments();
-            //annonce("SPLINE SEGMENTS CALCULATED");
 
-            // points between key points + key points
             points.resize((n - power + 2) * (precision - 2) + (n - power + 3));
-            //std::cout << "points size: " << points.size() << std::endl;
-            //std::cout << "n: " << n << " power: " << power << " precision: " << precision << std::endl;
             for (auto &point : points) {
                 point = {0.0f, 0.0f};
             }
 
             for (size_t i = 0; i < splineSegments.size(); i++) {
-                //std::cout << "----new spline segment: " << i << std::endl;
                 if (splineSegments[i].parts.empty()) {
                     throw std::runtime_error("empty spline segment");
                 }
-
-//                std::cout << i << " splineSegment intervals : ";
-//                for (auto &part : splineSegments[i].parts) {
-//                    std::cout << part.interval << " ";
-//                }
-//                std::cout << std::endl;
-
                 std::vector<float> mergedPoints = _mergeSplineSegmentParts(splineSegments[i]);
-                //print(mergedPoints, "merged points of " + std::to_string(i));
-                //std::cout << "Points merged" << std::endl;
 
                 int tVal = t[splineSegments[i].parts[0].interval.first];
                 size_t begin = (tVal == 0) ? 0 : (tVal * (precision - 1));
-                //std::cout << "begin: " << begin << std::endl;
-                //std::cout << "end: " << mergedPoints.size() << std::endl;
 
                 for (size_t idx = 0; idx < mergedPoints.size(); idx++) {
                     points[idx + begin] = points[idx + begin] + mergedPoints[idx] * keyPoints[i];
                 }
             }
-            //print(points, "points");
-
-            //annonce("CURVE CREATED SUCCESSFULLY");
         }
 
         bool setPower(power_t newPower) {
-            if(checkPower(newPower)) {
+            if (checkPower(newPower)) {
                 this->power = newPower;
                 return true;
             }
             return false;
-        }
-
-        power_t getPower() {
-            return power;
         }
 
         bool setPrecision(precision_t newPrecision) {
@@ -219,10 +177,6 @@ namespace crv {
                 return true;
             }
             return false;
-        }
-
-        precision_t getPrecision() {
-            return precision;
         }
 
         bool setKeyPoints(const std::vector<std::pair<float, float>> &newKeyPoints) {
@@ -234,12 +188,28 @@ namespace crv {
             return false;
         }
 
-        power_t maxAvailablePower() {
+        [[nodiscard]] power_t getPower() const {
+            return power;
+        }
+
+        [[nodiscard]] precision_t getPrecision() const {
+            return precision;
+        }
+
+        [[nodiscard]] bool checkPower(power_t newPower) const {
+            return newPower >= 2 && newPower <= keyPoints.size();
+        }
+
+        bool checkPoints(const std::vector<std::pair<float, float>> &toCheck) override {
+            return toCheck.size() >= 2;
+        }
+
+        [[nodiscard]] power_t maxAvailablePower() {
             return keyPoints.size();
         }
 
     private:
-        // n - index of last point (indexing begins from 0)
+        // n - index of last key point (indexing begins from 0)
         // power - power of curve
         int n;
         power_t power = 2;
@@ -247,8 +217,8 @@ namespace crv {
         // open uniform knot vector (like [0, 0, 0, 1, 2, 2, 2])
         std::vector<interval_t> t;
 
-    private:
-        enum {
+        //type of base spline part when adding to another spline
+        enum baseSplinePartType {
             LEFT_SPLINE,
             RIGHT_SPLINE
         };
@@ -261,29 +231,24 @@ namespace crv {
 
         struct _baseSpline {
             std::vector<_baseSplinePart> parts;
-            //bool calculated = false;
         };
 
         std::vector<_baseSpline> splineSegments;
 
+    private:
         //calculates B-spline segments (i.e. N[i][k] for 0 <= i <= n)
         void _calculateSplineSegments() {
             _calculateOpenKnotVector();
 
-            //print(t, "open knots");
             // N[i][k] = (t-t[i])/(t[i+k-1]-t[i]) * N[i][k-1] + (t[i+k]-t)/(t[i+k]-t[i+1]) * N[i+1][k-1]
-            // 1) maximum first index is n+k-2 (n - index of last point, indexing from 0)
-            //    for example: if we have 8 points (indexes from 0 to 7) and power = 6 then
-            //    last N is N[7][6], the maximum first index that we will calculate is 7+6-1=12 (N[12][1]),
-            //    which is located on the rightest branch of the N[7][6] calculation tree
-            //std::vector<std::vector<_baseSpline>> N(keyPoints.size() + power - 1, std::vector<_baseSpline>(power));
+            //
+            // max first index of N[i][...] is n+k-2 (n - index of last point, indexing from 0)
+            // example: if we have 8 points (indexes from 0 to 7) and power = 6 then
+            // last base spline is N[7][6], the maximum first index that we will calculate is 7+6-1=12 (N[12][1]),
+            // which is located on the rightest branch of the N[7][6] calculation tree
             std::vector<std::vector<_baseSpline>> N(t.size() - 1, std::vector<_baseSpline>(power));
 
-            //std::cout << "N size: " << N.size() << std::endl;
-            //std::cout << "t size: " << t.size() << std::endl;
-
             for (size_t i = 0; i < N.size(); i++) {
-                //std::cout << "# initializing N[" << i << "][" << 0 << "]\n";
                 N[i][0].parts.resize(1);
                 N[i][0].parts[0].tempPoints.resize(precision);
                 for (size_t j = 0; j < precision; j++) {
@@ -292,27 +257,14 @@ namespace crv {
                 N[i][0].parts[0].interval.first = i;
                 N[i][0].parts[0].interval.second = i + 1;
             }
-            //std::cout << "N initialized" << std::endl;
 
 
             int border = static_cast<int>(N.size()) - 1;
             for (int curPower = 1; curPower < power; curPower++) {
                 for (int i = 0; i < border; i++) {
-                    //std::cout << "########\n";
-                    //std::cout << "\n# calculating N[" << i << "][" << curPower << "]\n";
                     N[i][curPower].parts.resize(0);
                     _addBaseSpline(N[i][curPower - 1], N[i][curPower], i, curPower + 1, LEFT_SPLINE);
-                    //std::cout << "# left spline done\n";
                     _addBaseSpline(N[i + 1][curPower - 1], N[i][curPower], i, curPower + 1, RIGHT_SPLINE);
-//                    std::cout << "# right spline done\n";
-//                    std::cout << "# N[" << i << "][" << curPower << "] calculated\n";
-//                    std::cout << "########\n\n";
-//                    std::cout << "N[" << i << "][" << curPower << "] parts:" << std::endl;
-//                    for (auto &part : N[i][curPower].parts) {
-//                        std::cout << "interval: " << part.interval << std::endl;
-//                        std::cout << part.tempPoints << std::endl;
-//                    }
-//                    std::cout << std::string(10, '-') << std::endl;
                 }
                 border--;
             }
@@ -323,20 +275,10 @@ namespace crv {
             }
         }
 
-        void _addBaseSpline(const _baseSpline &src, _baseSpline &dest, int i, power_t k, int flag) {
-//            if (flag == LEFT_SPLINE) {
-//                std::cout << "left ";
-//            } else {
-//                std::cout << "right ";
-//            }
-//            std::cout << "src.parts.size() = " << src.parts.size() << std::endl;
-
+        // add one base spline to other
+        void _addBaseSpline(const _baseSpline &src, _baseSpline &dest, int i, power_t k, int flag) const {
             for (auto &srcPart : src.parts) {
-                //std::cout << "srcPart interval -> " << srcPart.interval.first << " : " << srcPart.interval.second
-                //          << std::endl;
                 if (t[srcPart.interval.first] != t[srcPart.interval.second]) {
-                    //std::cout << "t values -> " << t[srcPart.interval.first] << " : " << t[srcPart.interval.second]
-                    //          << std::endl;
                     _baseSplinePart newPart;
                     newPart.interval = srcPart.interval;
                     newPart.tempPoints = _createBaseSplinePartPoints(srcPart, i, k, flag);
@@ -349,14 +291,13 @@ namespace crv {
                     } else {
                         dest.parts.push_back(newPart);
                     }
-                } else {
-                    //std::cout << "t has same values" << std::endl;
                 }
             }
         }
 
+        // find specific interval in base spline
         static std::optional<int> findInterval(const _baseSpline &baseSpline,
-                                        const std::pair<int, int> &interval) {
+                                               const std::pair<int, int> &interval) {
             for (int i = 0; i < baseSpline.parts.size(); i++) {
                 if (baseSpline.parts[i].interval == interval) {
                     return i;
@@ -365,43 +306,25 @@ namespace crv {
             return {};
         }
 
-        std::vector<float> _createBaseSplinePartPoints(const _baseSplinePart &part, int i, power_t k, int flag) {
+        // create left or right base spline parts
+        [[nodiscard]] std::vector<float> _createBaseSplinePartPoints(const _baseSplinePart &part,
+                                                                     int i, power_t k, int flag) const {
             std::vector<float> res(precision);
 
             auto l = static_cast<float>(t[part.interval.first]);
             auto r = static_cast<float>(t[part.interval.second]);
             std::vector<float> tempT = math::linspace(l, r, precision);
 
-//            std::cout << "l: " << l << ", r: " << r << std::endl;
-//            print(tempT, "tempT");
-//            std::cout << "i: " << i << ", k: " << k << std::endl;
-//            std::cout << "_createBaseSplinePartPoints begin -> " << std::flush;
             for (size_t j = 0; j < res.size(); j++) {
                 if (flag == LEFT_SPLINE) {
-                    if (t[i + k - 1] == t[i]) {
-                        throw std::runtime_error("got equal t at left");
-                    }
                     res[j] = (tempT[j] - t[i]) / static_cast<float>(t[i + k - 1] - t[i]) * part.tempPoints[j];
                 } else {
-                    if (t[i + k] == t[i + 1]) {
-//                        std::cout << "t[" << i + k << "] = " << t[i + k] << ", t[" << i + 1 << "] = " << t[i + 1]
-//                                  << std::endl;
-                        throw std::runtime_error("got equal t at right");
-                    }
-//                    std::cout << "t[i+k] = " << t[i+k] << ", tempT[j] = " << tempT[j] << std::endl;
-//                    std::cout << "t[i+k]-TempT[j] = " << t[i + k] - tempT[j]
-//                    << ", t[i + k] - t[i + 1] = " << t[i + k] - t[i + 1]
-//                    << ", part.tempPoints[j] = " << part.tempPoints[j] << std::endl;
-                    res[j] = (t[i + k] - tempT[j]) / (float)(t[i + k] - t[i + 1]) * part.tempPoints[j];
+                    res[j] = (t[i + k] - tempT[j]) / (float) (t[i + k] - t[i + 1]) * part.tempPoints[j];
                 }
             }
-            //print(res, "res");
-            //std::cout << std::endl;
-            //std::cout << "end\n";
 
             return res;
         }
-
 
         //calculates open uniform knot vector (like [0, 0, 0, 1, 2, 2, 2])
         void _calculateOpenKnotVector() {
@@ -420,10 +343,10 @@ namespace crv {
             }
         }
 
+        // merge all base spline segments into one vector
         static std::vector<float> _mergeSplineSegmentParts(const _baseSpline &splineSegment) {
             std::vector<float> res;
 
-            //std::cout << "...merging " << splineSegment.parts.size() << " parts" << std::endl;
             for (int i = 0; i < splineSegment.parts.size(); i++) {
                 size_t j = (i == 0) ? 0 : 1;
                 for (; j < splineSegment.parts[i].tempPoints.size(); j++) {
@@ -432,20 +355,6 @@ namespace crv {
             }
 
             return res;
-        }
-
-        bool checkPower(power_t newPower) {
-            if (newPower < 2 || newPower > keyPoints.size()) {
-                return false;
-            }
-            return true;
-        }
-
-        bool checkPoints(const std::vector<std::pair<float, float>> &toCheck) override {
-            if (toCheck.size() < 2) {
-                return false;
-            }
-            return true;
         }
     };
 

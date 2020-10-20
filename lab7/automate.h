@@ -5,23 +5,23 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+
 #include "sfml_help.h"
 #include "curves_math.h"
 #include "sfml_extra.h"
-#include "myprint.h"
 
 
 typedef unsigned state_t;
 
 
-enum automateStates {
-    STATE_NONE,
-    STATE_ADD_POINT,
-    STATE_MOVE_POINT,
-};
-
-
 namespace atm {
+
+    enum automateStates {
+        STATE_NONE,
+        STATE_ADD_POINT,
+        STATE_MOVE_POINT,
+    };
+
 
     // abstract automate class for curve manipulations
     class Automate {
@@ -35,6 +35,7 @@ namespace atm {
             updateKeyboard();
         }
 
+        // check if one of curve key points is dragged or added
         virtual void updateMouse(sf::Vector2f mousePos) {
             sf::Vector2f windowBorders = sf::Vector2f(pRenderWindow->getSize());
 
@@ -43,7 +44,6 @@ namespace atm {
             }
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-                //std::cout << "CLICK AT " << mousePos.x << " " << mousePos.y << std::endl;
                 if (automateState == STATE_NONE) {
                     automateState = STATE_ADD_POINT;
 
@@ -87,7 +87,8 @@ namespace atm {
                 if (automateState == STATE_MOVE_POINT) {
                     if (mousePos != prevMousePos) {
                         keyPoints[curMovingSquarePos.value()] = mousePos;
-                        keyPointsRectangles[curMovingSquarePos.value()].setPosition(mousePos - sfh::SQUARE_POINT_SIZE / 2.0f);
+                        keyPointsRectangles[curMovingSquarePos.value()].setPosition(
+                                mousePos - sfh::SQUARE_POINT_SIZE / 2.0f);
                         keyPointsRectangles[curMovingSquarePos.value()].setFillColor(keyPointsMoveColor);
 
                         recreateCurve();
@@ -107,14 +108,16 @@ namespace atm {
             }
         }
 
-        // ToDo:
-        // - add delete point function
         virtual void updateKeyboard() {}
 
         virtual void recreateCurve() = 0;
 
         void setCurveColor(const sf::Color &color) {
             curveVerticesColor = color;
+        }
+
+        [[nodiscard]] bool isBusy() const {
+            return automateState != STATE_NONE;
         }
 
     public:
@@ -155,43 +158,16 @@ namespace atm {
     };
 
 
-    class BezierAutomate : public Automate {
-    public:
-        explicit BezierAutomate(sf::RenderWindow *pWindow) : Automate(pWindow) {}
-
-        void recreateCurve() override {
-            std::vector<std::pair<float, float>> pairsCurve = sfh::points2pairs(keyPoints);
-            bezierCurve.setKeyPoints(pairsCurve);
-            bezierCurve.calculateCurve();
-
-            std::vector<sf::Vector2f> curvePoints = sfh::pairs2points(bezierCurve.points);
-            curveVertices.resize(curvePoints.size());
-            for (size_t i = 0; i < curvePoints.size(); i++) {
-                curveVertices[i] = sf::Vertex(curvePoints[i], curveVerticesColor);
-            }
-
-            keyPointsVertices.resize(keyPoints.size());
-            for (size_t i = 0; i < keyPoints.size(); i++) {
-                keyPointsVertices[i] = sf::Vertex(keyPoints[i], keyPointsVerticesColor);
-            }
-        }
-
-    public:
-        crv::Bezier bezierCurve;
-    };
-
-
     class SplineAutomate : public Automate {
     public:
         explicit SplineAutomate(sf::RenderWindow *pWindow) : Automate(pWindow) {}
 
         void recreateCurve() override {
-            //annonce("Curve recreation");
-
             if (keyPoints.size() < 2) {
                 return;
             }
 
+            // convert sf::Vector2f to std::pair<float, float>
             std::vector<std::pair<float, float>> pairsCurve = sfh::points2pairs(keyPoints);
 
             splineCurve.setKeyPoints(pairsCurve);
@@ -199,16 +175,13 @@ namespace atm {
             splineCurve.setPrecision(curvePrecision);
             splineCurve.calculateCurve();
 
+            // get and convert to sf::Vector2f new curve points
             std::vector<sf::Vector2f> curvePoints = sfh::pairs2points(splineCurve.points);
-            curveVertices.resize(curvePoints.size());
-            for (size_t i = 0; i < curvePoints.size(); i++) {
-                curveVertices[i] = sf::Vertex(curvePoints[i], curveVerticesColor);
-            }
 
-            keyPointsVertices.resize(keyPoints.size());
-            for (size_t i = 0; i < keyPoints.size(); i++) {
-                keyPointsVertices[i] = sf::Vertex(keyPoints[i], keyPointsVerticesColor);
-            }
+            setCurveVertices(curvePoints);
+
+            setKeyPoints();
+
         }
 
         void update(sf::Vector2f mousePos) override {
@@ -218,37 +191,34 @@ namespace atm {
             if (updateButtons(mousePos)) {
                 return;
             }
-            //std::cout << "No checkboxes clicked. State: " << automateState << std::endl;
             updateMouse(mousePos);
             updateKeyboard();
         }
 
         void updateKeyboard() override {
-            if (!goodPower(curvePower)) {
+            if (!splineCurve.checkPower(curvePower)) {
                 setCurvePower(2);
             }
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-                if (goodPower(curvePower+1)) {
-                    setCurvePower(curvePower+1);
+                if (splineCurve.checkPower(curvePower + 1)) {
+                    setCurvePower(curvePower + 1);
                     recreateCurve();
-                    //std::cout << "CURVE POWER INCREASED: " << curvePower << std::endl;
                 }
             }
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-                if (goodPower(curvePower-1)) {
-                    setCurvePower(curvePower-1);
+                if (splineCurve.checkPower(curvePower - 1)) {
+                    setCurvePower(curvePower - 1);
                     recreateCurve();
-                    //std::cout << "CURVE POWER DECREASED: " << curvePower << std::endl;
                 }
             }
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Delete)) {
                 if (curActiveSquarePos.has_value()) {
-                    keyPoints.erase(keyPoints.begin()+curActiveSquarePos.value());
-                    keyPointsRectangles.erase(keyPointsRectangles.begin()+curActiveSquarePos.value());
-                    keyPointsVertices.erase(keyPointsVertices.begin()+curActiveSquarePos.value());
+                    keyPoints.erase(keyPoints.begin() + curActiveSquarePos.value());
+                    keyPointsRectangles.erase(keyPointsRectangles.begin() + curActiveSquarePos.value());
+                    keyPointsVertices.erase(keyPointsVertices.begin() + curActiveSquarePos.value());
 
                     curActiveSquarePos.reset();
 
@@ -264,9 +234,8 @@ namespace atm {
             }
         }
 
-
         bool updateCheckboxes(sf::Vector2f mousePos) {
-            if (automateState != STATE_NONE) {
+            if (isBusy()) {
                 //automate still doing some other job with graphics
                 return false;
             }
@@ -280,7 +249,7 @@ namespace atm {
         }
 
         bool updateButtons(sf::Vector2f mousePos) {
-            if (automateState != STATE_NONE) {
+            if (isBusy()) {
                 //automate still doing some other job with graphics
                 return false;
             }
@@ -292,9 +261,9 @@ namespace atm {
             }
             return false;
         }
-        
+
         void addCheckbox(const sfe::Checkbox &newCheckbox) {
-             checkboxes.push_back(newCheckbox);
+            checkboxes.push_back(newCheckbox);
         }
 
         void addCheckbox(sfe::Checkbox &&newCheckbox) {
@@ -312,8 +281,7 @@ namespace atm {
                 checkboxes.push_back(newCheckBox);
             }
         }
-        
-        
+
         void addButton(const sfe::Button &newButton) {
             buttons.push_back(newButton);
         }
@@ -341,24 +309,22 @@ namespace atm {
             }
         }
 
-        power_t getCurvePower() const {
+        [[nodiscard]] power_t getCurvePower() const {
             return curvePower;
         }
 
-        void setCurvePrecision(precision_t newPrecision) {
-            if (!goodPrecision(newPrecision)) {
-                throw std::runtime_error("automate: invalid curve precision set");
+        void checkAndSetCurvePrecision(precision_t newPrecision) {
+            if (splineCurve.checkPrecision(newPrecision)) {
+                curvePrecision = newPrecision;
             }
-            curvePrecision = newPrecision;
         }
 
-
-        void drawCheckboxes() {
+        void drawCheckboxes() const {
             for (auto &checkbox : checkboxes) {
                 pRenderWindow->draw(checkbox.getRectangle());
             }
         }
-        
+
         void drawButtons() {
             for (auto &button: buttons) {
                 pRenderWindow->draw(button.getRectangle());
@@ -381,12 +347,20 @@ namespace atm {
             curvePower = newPower;
         }
 
-        bool goodPower(power_t newPower) {
-            return newPower <= keyPoints.size() && newPower >= 2;
+        // convert std::vector<sf::Vector2f> to std::vector<sf::Vertex> and write to curve vertices
+        void setCurveVertices(const std::vector<sf::Vector2f> &curvePoints) {
+            curveVertices.resize(curvePoints.size());
+            for (size_t i = 0; i < curvePoints.size(); i++) {
+                curveVertices[i] = sf::Vertex(curvePoints[i], curveVerticesColor);
+            }
         }
 
-        bool goodPrecision(precision_t precision) {
-            return precision >= 1;
+        // recreate lines between key points
+        void setKeyPoints() {
+            keyPointsVertices.resize(keyPoints.size());
+            for (size_t i = 0; i < keyPoints.size(); i++) {
+                keyPointsVertices[i] = sf::Vertex(keyPoints[i], keyPointsVerticesColor);
+            }
         }
     };
 

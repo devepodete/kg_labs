@@ -9,20 +9,21 @@
 #include <utility>
 #include <SFML/Graphics.hpp>
 
-//#include "myprint.h"
-
 
 // helpful functions for sfml library
 namespace sfh {
+
     const float SQUARE_POINT_WIDTH = 10.0f;
     const float SQUARE_POINT_HEIGHT = 10.0f;
     const sf::Vector2f SQUARE_POINT_SIZE = sf::Vector2f(SQUARE_POINT_WIDTH, SQUARE_POINT_HEIGHT);
 
-    enum{
+
+    enum positionCoordinatesType {
         POS_MIDDLE,
         POS_LEFT_UP
     };
 
+    // create square point with <pos> and <color>
     sf::RectangleShape squarePoint(sf::Vector2f pos, int posType = POS_MIDDLE,
                                    sf::Color fillColor = sf::Color::White) {
         sf::RectangleShape rect;
@@ -46,8 +47,9 @@ namespace sfh {
         return rect;
     }
 
+    // convert std::vector<sf::Vector2f> to std::vector<sf::Vertex> with some sf::Color
     std::vector<sf::Vertex> points2vertices(const std::vector<sf::Vector2f> &v,
-                                            sf::Color color) {
+                                            sf::Color color = sf::Color::Black) {
         std::vector<sf::Vertex> res(v.size());
         for (size_t i = 0; i < v.size(); i++) {
             res[i] = {v[i], color};
@@ -56,14 +58,17 @@ namespace sfh {
         return res;
     }
 
+    // convert std:pair<float, float> to sf::Vector2f
     inline sf::Vector2f pair2Vec2f(const std::pair<float, float> &f) {
         return {f.first, f.second};
     }
 
+    // convert sf::Vector2f to std:pair<float, float>
     inline std::pair<float, float> Vec2f2pair(const sf::Vector2f &vec) {
         return std::make_pair(vec.x, vec.y);
     }
 
+    // convert std::vector<std::pair<float, float>> to std::vector<sf::Vector2f>
     std::vector<sf::Vector2f> pairs2points(const std::vector<std::pair<float, float>> &pairs) {
         std::vector<sf::Vector2f> res(pairs.size());
         for (size_t i = 0; i < pairs.size(); i++) {
@@ -73,6 +78,7 @@ namespace sfh {
         return res;
     }
 
+    // convert std::vector<sf::Vector2f> to std::vector<std::pair<float, float>>
     std::vector<std::pair<float, float>> points2pairs(const std::vector<sf::Vector2f> &points) {
         std::vector<std::pair<float, float>> res(points.size());
         for (size_t i = 0; i < points.size(); i++) {
@@ -82,6 +88,7 @@ namespace sfh {
         return res;
     }
 
+    // check if point is inside rectangle
     template<typename TPos = sf::Vector2f>
     bool pointInsideRectangle(TPos newPos, const sf::RectangleShape &rec) {
         auto pos = static_cast<sf::Vector2f>(newPos);
@@ -96,4 +103,5 @@ namespace sfh {
             return false;
         }
     }
+
 } //namespace sfh

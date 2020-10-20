@@ -35,15 +35,11 @@ namespace math {
 
         float distance = t2 - t1;
         float step = distance / static_cast<float>(count - 1);
-        //std::cout << "distance: " << distance << std::endl;
-        //std::cout << "step: " << step << std::endl;
 
         float cur = t1;
         while (cur <= t2 || std::abs(cur - t2) < 1e-5) {
             res.push_back(cur);
             cur += step;
-            //std::cout << "cur = " << cur << std::endl;
-            //std::cout << "std::abs(cur - t2) = " << std::abs(cur - t2) << std::endl;
         }
 
         if (res.size() < count) {

@@ -13,10 +13,10 @@
 template<class T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
     os << "[";
-    for (size_t i = 0; i < v.size()-1; i++) {
+    for (size_t i = 0; i < v.size() - 1; i++) {
         os << v[i] << ", ";
     }
-    os << v[v.size()-1] << "]";
+    os << v[v.size() - 1] << "]";
     os << std::endl;
     return os;
 }
@@ -53,16 +53,8 @@ void print(const std::vector<T> &v, const std::string &name) {
     print(v);
 }
 
-void annonce(std::string s, char c) {
-    std::cout << ('\n' + std::string(s.size()+4, c)+ '\n');
+void annonce(const std::string &s, char c = '*') {
+    std::cout << ('\n' + std::string(s.size() + 4, c) + '\n');
     std::cout << c << ' ' << s << ' ' << c;
-    std::cout << ('\n' + std::string(s.size()+4, c) + '\n');
-}
-
-void annonce(const char *s) {
-    annonce(std::string(s), '*');
-}
-
-void annonce(const char *s, char c) {
-    annonce(std::string(s), c);
+    std::cout << ('\n' + std::string(s.size() + 4, c) + '\n');
 }

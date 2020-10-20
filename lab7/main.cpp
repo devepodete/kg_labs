@@ -14,20 +14,19 @@ const uint32_t windowHeight = 600;
 
 const sf::Color bgColor = sf::Color(237, 225, 242);
 
+
 bool drawKeyPointsLines = true;
 bool increasePower = false;
 bool decreasePower = false;
 
 
 void checkboxCallback(checkbox_state_t state) {
-    //std::cout << "FOO CALLED" << std::endl;
     drawKeyPointsLines = !drawKeyPointsLines;
 }
 
 
 void increasePowerCallback(button_state_t state) {
     if (state == sfe::BUTTON_PRESSED) {
-        //std::cout << "increase callback" << std::endl;
         increasePower = true;
     }
 }
@@ -46,30 +45,28 @@ int main() {
         return 0;
     }
 
-
     sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight),
                             "Made by @devepodete");
     window.setPosition(sf::Vector2i(200, 10));
 
 
-    atm::SplineAutomate automate(&window);
-    automate.setCurvePrecision(50);
-
-
-    automate.addCheckbox(sfe::Checkbox(&window, {20.0f, 20.0f}, checkboxCallback));
-
-
-    sfe::Button button1 = sfe::Button(&window, {10.0f, 50.0f}, increasePowerCallback);
-    button1.setText(mainFont, "Increase");
-    sfe::Button button2 = sfe::Button(&window, {10.0f, 90.0f}, decreasePowerCallback);
-    button2.setText(mainFont, "Decrease");
-
-    automate.addButton({button1, button2});
-
     sf::Text powerText("", mainFont);
     powerText.setOutlineThickness(0.0f);
     powerText.setFillColor(sf::Color::Black);
     powerText.setPosition(10.0f, 130.0f);
+
+
+    sfe::Button button1 = sfe::Button(&window, {10.0f, 50.0f}, increasePowerCallback);
+    button1.setText(mainFont, "Increase");
+
+    sfe::Button button2 = sfe::Button(&window, {10.0f, 90.0f}, decreasePowerCallback);
+    button2.setText(mainFont, "Decrease");
+
+
+    atm::SplineAutomate automate(&window);
+    automate.checkAndSetCurvePrecision(50);
+    automate.addCheckbox(sfe::Checkbox(&window, {20.0f, 20.0f}, checkboxCallback));
+    automate.addButton({button1, button2});
 
     while (window.isOpen()) {
         sf::Event event;
@@ -87,13 +84,12 @@ int main() {
             }
 
             if (increasePower) {
-                //std::cout << "curve power: " << automate.getCurvePower() << std::endl;
-                automate.checkAndSetCurvePower(automate.getCurvePower()+1);
+                automate.checkAndSetCurvePower(automate.getCurvePower() + 1);
                 increasePower = false;
             }
 
             if (decreasePower) {
-                automate.checkAndSetCurvePower(automate.getCurvePower()-1);
+                automate.checkAndSetCurvePower(automate.getCurvePower() - 1);
                 decreasePower = false;
             }
 
