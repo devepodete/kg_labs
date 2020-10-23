@@ -46,6 +46,11 @@ namespace mat {
             data[L-1] = val;
         }
 
+        vec<T, L> &operator=(const vec<T, L> &v) {
+            this->data = v.data;
+            return *this;
+        }
+
 
         T &operator[](pos_t pos) {
             return data[pos];
@@ -59,10 +64,33 @@ namespace mat {
             return L;
         }
 
+        [[nodiscard]] float magnitude() const {
+            float res = 0;
+
+            for (auto &elem : data) {
+                res += elem * elem;
+            }
+
+            return std::sqrt(res);
+        }
+
+        void normalize() {
+            float len = magnitude();
+
+            if (len == 0) {
+                return;
+            }
+
+            for (length_t i = 0; i < data.size(); i++) {
+                data[i] = data[i] / len;
+            }
+        }
+
         void print() {
             for (T f : data) {
                 std::cout << f << " ";
             }
+            std::cout << "\n";
         }
 
     public:
@@ -170,6 +198,18 @@ namespace mat {
 
 
     template <typename T, length_t L>
+    vec<T, L> normalize(const vec<T, L> &v) {
+
+    }
+
+
+    float radians(float degrees) {
+        // degrees * pi / 180
+        return degrees * 0.017453292519943295f;
+    }
+
+
+    template <typename T, length_t L>
     mat<T, L> translate(const mat<T, L> &identityMatrix, const vec<T, L-1> &translationVector) {
         mat<T, L> res = identityMatrix;
 
@@ -191,98 +231,30 @@ namespace mat {
         return res;
     }
 
-    template <typename T, length_t L>
-    mat<T, L> rotate(const mat<T, L> &identityMatrix, float radiansAngle, const vec<T, L-1> &rotationVector) {
-        mat<T, L> res(static_cast<T>(1));
-        res = rotateX(identityMatrix, radiansAngle, rotationVector) *
-                rotateY(identityMatrix, radiansAngle, rotationVector) *
-                rotateZ(identityMatrix, radiansAngle, rotationVector);
+    template <typename T>
+    mat<T, 4> rotate(const mat<T, 4> &identityMatrix, float a, vec<T, 3> R) {
+        R.normalize();
 
-        return res;
-    }
+        float cosa = std::cos(a);
+        float sina = std::sin(a);
 
-    template <typename T, length_t L>
-    mat<T, L> rotateX(const mat<T, L> &identityMatrix, float radiansAngle, const vec<T, L-1> &rotationVector) {
-        if (rotationVector[0] == 0) {
-            return identityMatrix;
-        }
+        float RxSin = R[0]*sina;
+        float RySin = R[1]*sina;
+        float RzSin = R[2]*sina;
 
-        mat<T, L> res = {
-                {1, 0, 0, 0},
-                {0, std::cos(radiansAngle), -std::sin(radiansAngle), 0},
-                {0, std::sin(radiansAngle), std::cos(rotationVector), 0},
+        float Rx1Cos = R[0]*(1-cosa);
+        float Ry1Cos = R[1]*(1-cosa);
+        float Rz1Cos = R[2]*(1-cosa);
+
+        mat<T, 4> ans = {
+                {cosa+R[0]*Rx1Cos, R[0]*Ry1Cos-RzSin, R[0]*Rz1Cos+RySin, 0},
+                {R[1]*Rx1Cos+RzSin, cosa+R[1]*Ry1Cos, R[1]*Rz1Cos-RxSin, 0},
+                {R[2]*Rx1Cos-RySin, R[2]*Ry1Cos+RxSin, cosa+R[2]*Rz1Cos, 0},
                 {0, 0, 0, 1}
+
         };
-        res *= identityMatrix;
 
-        return res;
-    }
-
-    template <typename T, length_t L>
-    mat<T, L> rotateY(const mat<T, L> &identityMatrix, float radiansAngle, const vec<T, L-1> &rotationVector) {
-        if (rotationVector[1] == 0) {
-            return identityMatrix;
-        }
-
-        mat<T, L> res = {
-                {std::cos(radiansAngle), 0, std::sin(radiansAngle), 0},
-                {0, 1, 0, 0},
-                {-std::sin(radiansAngle), 0, std::cos(radiansAngle), 0},
-                {0, 0, 0, 1}
-        };
-        res *= identityMatrix;
-
-        return res;
-    }
-
-    template <typename T, length_t L>
-    mat<T, L> rotateZ(const mat<T, L> &identityMatrix, float radiansAngle, const vec<T, L-1> &rotationVector) {
-        if (rotationVector[2] == 0) {
-            return identityMatrix;
-        }
-
-        mat<T, L> res = {
-                {std::cos(radiansAngle), -std::sin(radiansAngle), 0, 0},
-                {std::sin(radiansAngle), std::cos(radiansAngle), 0, 0},
-                {0, 0, 1, 0},
-                {0, 0, 0, 1}
-        };
-        res *= identityMatrix;
-
-        return res;
-    }
-
-
-    template <typename T, length_t L>
-    vec<T, L> normalize(const vec<T, L> &v) {
-        vec<T, L> res;
-        float len = magnitude(v);
-
-        if (len == 0) {
-            return res;
-        }
-
-        for (length_t i = 0; i < v.size(); i++) {
-            res[i] = v[i] / len;
-        }
-
-        return res;
-    }
-
-    template <typename T, length_t L>
-    float magnitude(const vec<T, L> &v) {
-        float res = 0;
-
-        for (auto &elem : v.data) {
-            res += elem * elem;
-        }
-
-        return std::sqrt(res);
-    }
-
-    float radians(float degrees) {
-        // degrees * pi / 180
-        return degrees * 0.017453292519943295f;
+        return ans;
     }
 
 
@@ -294,5 +266,7 @@ namespace mat {
     typedef mat<float, 3> mat3;
     typedef mat<float, 4> mat4;
 
+
+    const float pi = 3.14159265358979f;
 
 } // namespace mat
