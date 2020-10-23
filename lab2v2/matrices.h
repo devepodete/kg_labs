@@ -133,6 +133,12 @@ namespace mat {
             }
         }
 
+        explicit mat(const vec<T, L-1> &v) : mat(static_cast<T>(1)) {
+            for (length_t i = 0; i < L-1; i++) {
+                data[i][i] *= v[i];
+            }
+        }
+
         mat(const mat<T, L> &other) {
             data = other.data;
         }
@@ -214,7 +220,7 @@ namespace mat {
         mat<T, L> res = identityMatrix;
 
         for (length_t i = 0; i < L-1; i++) {
-            res[i][L-1] = translationVector[i];
+            res[i][L-1] += translationVector[i];
         }
 
         return res;
@@ -222,13 +228,9 @@ namespace mat {
 
     template <typename T, length_t L>
     mat<T, L> scale(const mat<T, L> &identityMatrix, const vec<T, L-1> &scalingVector) {
-        mat<T, L> res = identityMatrix;
+        mat<T, L> res(scalingVector);
 
-        for (length_t i = 0; i < L-1; i++) {
-            res[i][i] *= scalingVector[i];
-        }
-
-        return res;
+        return identityMatrix * res;
     }
 
     template <typename T>
@@ -254,7 +256,8 @@ namespace mat {
 
         };
 
-        return ans;
+
+        return identityMatrix * ans;
     }
 
 
