@@ -10,7 +10,7 @@
 #include <cmath>
 
 // linear algebra
-namespace mat {
+namespace mm {
 
     /// Pi constant
     const float pi = 3.14159265358979f;
@@ -25,22 +25,12 @@ namespace mat {
     template<typename T, length_t L>
     class vec;
 
-
     /// Square matrix (constant size)
     ///
     /// \tparam T A floating-point scalar type
     /// \tparam L Size of matrix
     template<typename T, length_t L>
     class mat;
-
-    /// Creates a normalized vector (with magnitude equal to 1)
-    ///
-    /// \tparam T A floating-point scalar type
-    /// \tparam L Size of vector
-    /// \param v Input vector
-    /// \return Normalized vector v
-    template <typename T, length_t L>
-    vec<T, L> normalize(const vec<T, L> &v);
 
     /// Converts angle in degrees to angle in radians
     ///
@@ -76,8 +66,50 @@ namespace mat {
     /// \param R Vector to rotate around (must be normalized)
     /// \return New transformation matrix
     template <typename T>
-    mat<T, 4> rotate(const mat<T, 4> &identityMatrix, float angle, const vec<T, 3> &R);
+    mat<T, 4> rotate(const mat<T, 4> &identityMatrix, T angle, const vec<T, 3> &R);
 
+    /// Create perspective projection matrix
+    ///
+    /// \param l Left
+    /// \param r Right
+    /// \param b Bottom
+    /// \param t Top
+    /// \param n Near
+    /// \param f Far
+    /// \return Perspective projection matrix
+    mat<float, 4> makePerspectiveMatrix(float l, float r, float b, float t, float n, float f);
+
+    /// Create orthographic projection matrix
+    ///
+    /// \param l Left
+    /// \param r Right
+    /// \param b Bottom
+    /// \param t Top
+    /// \param n Near
+    /// \param f Far
+    /// \return Orthographic projection matrix
+    mat<float, 4> ortho(float l, float r, float b, float t, float n, float f);
+
+    /// Create perspective projection matrix
+    ///
+    /// \param fovY Field of view (angle in radians)
+    /// \param n Near
+    /// \param f Far
+    /// \return Perspective projection matrix
+    mat<float, 4> perspective(float fovY, float aspectRatio, float front, float back);
+
+
+    /// x1*x2+y1*y2+z1+z2
+    template <typename T>
+    T partDotProduct(const vec<T, 3> &v1, const vec<T, 3> &v2);
+
+    /// Dot product
+    template <typename T>
+    T dotProduct(const vec<T, 3> &v1, const vec<T, 3> &v2);
+
+    /// Cross product
+    template <typename T>
+    vec<T, 3> crossProduct(const vec<T, 3> &v1, const vec<T, 3> &v2);
 
     typedef vec<float, 2> vec2;
     typedef vec<float, 3> vec3;
@@ -86,7 +118,7 @@ namespace mat {
     typedef mat<float, 2> mat2;
     typedef mat<float, 3> mat3;
     typedef mat<float, 4> mat4;
-    
-} // namespace mat
+
+} // namespace mm
 
 #include "matrices.inl"

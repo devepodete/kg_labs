@@ -4,7 +4,7 @@
 
 #pragma once
 
-namespace mat {
+namespace mm {
 
     template<typename T, length_t L>
     class vec{
@@ -192,10 +192,6 @@ namespace mat {
         std::array<std::array<T, L>, L> data;
     };
 
-    template <typename T, length_t L>
-    vec<T, L> normalize(const vec<T, L> &v) {
-    }
-
 
     float radians(float degrees) {
         return degrees * 0.017453292519943295f;
@@ -221,7 +217,7 @@ namespace mat {
     }
 
     template <typename T>
-    mat<T, 4> rotate(const mat<T, 4> &identityMatrix, float angle, const vec<T, 3> &R) {
+    mat<T, 4> rotate(const mat<T, 4> &identityMatrix, T angle, const vec<T, 3> &R) {
         float cosa = std::cos(angle);
         float sina = std::sin(angle);
 
@@ -244,4 +240,54 @@ namespace mat {
         return identityMatrix * ans;
     }
 
-} // namespace mat
+
+    mat<float, 4> makePerspectiveMatrix(float l, float r, float b, float t, float n, float f) {
+        mat<float, 4> res = {
+                {(float)2*n/(r-l), 0.0, (r+l)/(r-l), 0.0},
+                {0.0, (float)2*n/(t-b), (t+b)/(t-b), 0.0},
+                {0.0, 0.0, -(f+n)/(f-n), -(float)2*f*n/(f-n)},
+                {0.0, 0.0, -1.0, 0.0}
+        };
+
+        return res;
+    }
+
+    mat<float, 4> ortho(float l, float r, float b, float t, float n, float f) {
+        mat<float, 4> res = {
+                {(float)2/(r-l), 0.0, 0.0, -(r+l)/(r-l)},
+                {0.0, (float)2/(t-b), 0.0, -(t+b)/(t-b)},
+                {0.0, 0.0, -(float)2/(f-n), -(f+n)/(f-n)},
+                {0.0, 0.0, 0.0, 1.0}
+        };
+
+        return res;
+    }
+
+    mat<float, 4> perspective(float fovY, float aspectRatio, float front, float back) {
+        float tangent = std::tan(fovY/2);
+        float height = front * tangent;
+        float width = height * aspectRatio;
+
+        return makePerspectiveMatrix(-width, width, -height, height, front, back);
+    }
+
+
+    template <typename T>
+    T partDotProduct(const vec<T, 3> &v1, const vec<T, 3> &v2) {
+        return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
+    }
+
+    template <typename T>
+    T dotProduct(const vec<T, 3> &v1, const vec<T, 3> &v2) {
+        return partDotProduct(v1, v2) / (v1.magnitude() * v2.magnitude());
+    }
+
+
+    template <typename T>
+    vec<T, 3> crossProduct(const vec<T, 3> &v1, const vec<T, 3> &v2) {
+        return vec<T, 3>(v1[1]*v2[2]-v2[1]*v1[2], v2[0]*v1[2]-v1[0]*v2[2],
+                         v1[0]*v2[1]-v2[0]*v1[1]);
+    }
+
+
+} // namespace mm
