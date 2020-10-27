@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "matrices.hpp"
+#include "conversion.hpp"
 
 /// Point with float (x, y, z) values
 class Point;

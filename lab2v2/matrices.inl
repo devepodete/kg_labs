@@ -36,8 +36,21 @@ namespace mm {
             data[L-1] = val;
         }
 
+        vec<T, L> operator*(double d) const {
+            vec<T, L> res;
+            for (length_t i = 0; i < res.size(); i++) {
+                res[i] = data[i] * d;
+            }
+            return res;
+        }
+
         vec<T, L> &operator=(const vec<T, L> &v) {
             this->data = v.data;
+            return *this;
+        }
+
+        vec<T, L> &operator*=(double d) {
+            *this = *this * d;
             return *this;
         }
 
@@ -54,8 +67,8 @@ namespace mm {
             return L;
         }
 
-        [[nodiscard]] float magnitude() const {
-            float res = 0;
+        [[nodiscard]] double magnitude() const {
+            double res = 0;
 
             for (auto &elem : data) {
                 res += elem * elem;
@@ -65,7 +78,7 @@ namespace mm {
         }
 
         void normalize() {
-            float len = magnitude();
+            double len = magnitude();
 
             if (len == 0) {
                 return;
@@ -76,11 +89,11 @@ namespace mm {
             }
         }
 
-        void print() {
+        void print(char end = '\n') {
             for (T f : data) {
                 std::cout << f << " ";
             }
-            std::cout << "\n";
+            std::cout << end;
         }
 
     public:
@@ -193,8 +206,8 @@ namespace mm {
     };
 
 
-    float radians(float degrees) {
-        return degrees * 0.017453292519943295f;
+    double radians(double degrees) {
+        return degrees * 0.017453292519943295;
     }
 
 
@@ -218,16 +231,16 @@ namespace mm {
 
     template <typename T>
     mat<T, 4> rotate(const mat<T, 4> &identityMatrix, T angle, const vec<T, 3> &R) {
-        float cosa = std::cos(angle);
-        float sina = std::sin(angle);
+        double cosa = std::cos(angle);
+        double sina = std::sin(angle);
 
-        float RxSin = R[0]*sina;
-        float RySin = R[1]*sina;
-        float RzSin = R[2]*sina;
+        double RxSin = R[0]*sina;
+        double RySin = R[1]*sina;
+        double RzSin = R[2]*sina;
 
-        float Rx1Cos = R[0]*(1-cosa);
-        float Ry1Cos = R[1]*(1-cosa);
-        float Rz1Cos = R[2]*(1-cosa);
+        double Rx1Cos = R[0]*(1-cosa);
+        double Ry1Cos = R[1]*(1-cosa);
+        double Rz1Cos = R[2]*(1-cosa);
 
         mat<T, 4> ans = {
                 {cosa+R[0]*Rx1Cos, R[0]*Ry1Cos-RzSin, R[0]*Rz1Cos+RySin, 0},
@@ -241,44 +254,50 @@ namespace mm {
     }
 
 
-    mat<float, 4> makePerspectiveMatrix(float l, float r, float b, float t, float n, float f) {
-        mat<float, 4> res = {
-                {(float)2*n/(r-l), 0.0, (r+l)/(r-l), 0.0},
-                {0.0, (float)2*n/(t-b), (t+b)/(t-b), 0.0},
-                {0.0, 0.0, -(f+n)/(f-n), -(float)2*f*n/(f-n)},
+    mat<double, 4> makePerspectiveMatrix(double l, double r, double b, double t, double n, double f) {
+        mat<double, 4> res = {
+                {2.0*n/(r-l), 0.0, (r+l)/(r-l), 0.0},
+                {0.0, 2.0*n/(t-b), (t+b)/(t-b), 0.0},
+                {0.0, 0.0f, -(f+n)/(f-n), -2.0*f*n/(f-n)},
                 {0.0, 0.0, -1.0, 0.0}
         };
 
         return res;
     }
 
-    mat<float, 4> ortho(float l, float r, float b, float t, float n, float f) {
-        mat<float, 4> res = {
-                {(float)2/(r-l), 0.0, 0.0, -(r+l)/(r-l)},
-                {0.0, (float)2/(t-b), 0.0, -(t+b)/(t-b)},
-                {0.0, 0.0, -(float)2/(f-n), -(f+n)/(f-n)},
+    mat<double, 4> ortho(double l, double r, double b, double t, double n, double f) {
+        mat<double, 4> res = {
+                {2.0/(r-l), 0.0, 0.0, -(r+l)/(r-l)},
+                {0.0, 2.0/(t-b), 0.0, -(t+b)/(t-b)},
+                {0.0, 0.0, 2.0/(f-n), -(f+n)/(f-n)},
                 {0.0, 0.0, 0.0, 1.0}
         };
 
         return res;
     }
 
-    mat<float, 4> perspective(float fovY, float aspectRatio, float front, float back) {
-        float tangent = std::tan(fovY/2);
-        float height = front * tangent;
-        float width = height * aspectRatio;
+    mat<double, 4> perspective(double fovY, double aspectRatio, double front, double back) {
+        double tangent = std::tan(fovY/2);
+        double height = front * tangent;
+        double width = height * aspectRatio;
+        //std::cout << "width: " << width << " height: " << height << std::endl;
 
         return makePerspectiveMatrix(-width, width, -height, height, front, back);
     }
 
 
-    template <typename T>
-    T partDotProduct(const vec<T, 3> &v1, const vec<T, 3> &v2) {
-        return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
+    template <typename T, length_t L>
+    T partDotProduct(const vec<T, L> &v1, const vec<T, L> &v2) {
+        T res = 0;
+        for (length_t i = 0; i < v1.size(); i++) {
+            res += v1[i]*v2[i];
+        }
+
+        return res;
     }
 
-    template <typename T>
-    T dotProduct(const vec<T, 3> &v1, const vec<T, 3> &v2) {
+    template <typename T, length_t L>
+    T dotProduct(const vec<T, L> &v1, const vec<T, L> &v2) {
         return partDotProduct(v1, v2) / (v1.magnitude() * v2.magnitude());
     }
 
@@ -287,6 +306,19 @@ namespace mm {
     vec<T, 3> crossProduct(const vec<T, 3> &v1, const vec<T, 3> &v2) {
         return vec<T, 3>(v1[1]*v2[2]-v2[1]*v1[2], v2[0]*v1[2]-v1[0]*v2[2],
                          v1[0]*v2[1]-v2[0]*v1[1]);
+    }
+
+    template <typename T, length_t L>
+    bool isPerpendicular(const vec<T, L> &v1, const vec<T, L> &v2) {
+        return floatEqual(partDotProduct(v1, v2), 0.0);
+    }
+
+    bool floatEqual(double f1, double f2) {
+        if (f1 < f2) {
+            return (f2-f1) < comparePrecision;
+        } else {
+            return (f1-f2) < comparePrecision;
+        }
     }
 
 

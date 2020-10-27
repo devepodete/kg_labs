@@ -13,7 +13,10 @@
 namespace mm {
 
     /// Pi constant
-    const float pi = 3.14159265358979f;
+    const double pi = 3.14159265358979f;
+
+    // Comarison between double precision (x == y <-> |x-y| < comparePrecision)
+    const double comparePrecision = 1e-10f;
 
     typedef size_t length_t;
     typedef size_t pos_t;
@@ -36,7 +39,7 @@ namespace mm {
     ///
     /// \param degrees Angle in degrees
     /// \return Angle in radians
-    float radians(float degrees);
+    double radians(double degrees);
 
     /// Add translation to identityMatrix
     ///
@@ -77,7 +80,7 @@ namespace mm {
     /// \param n Near
     /// \param f Far
     /// \return Perspective projection matrix
-    mat<float, 4> makePerspectiveMatrix(float l, float r, float b, float t, float n, float f);
+    mat<double, 4> makePerspectiveMatrix(double l, double r, double b, double t, double n, double f);
 
     /// Create orthographic projection matrix
     ///
@@ -88,7 +91,7 @@ namespace mm {
     /// \param n Near
     /// \param f Far
     /// \return Orthographic projection matrix
-    mat<float, 4> ortho(float l, float r, float b, float t, float n, float f);
+    mat<double, 4> ortho(double l, double r, double b, double t, double n, double f);
 
     /// Create perspective projection matrix
     ///
@@ -96,28 +99,36 @@ namespace mm {
     /// \param n Near
     /// \param f Far
     /// \return Perspective projection matrix
-    mat<float, 4> perspective(float fovY, float aspectRatio, float front, float back);
+    mat<double, 4> perspective(double fovY, double aspectRatio, double front, double back);
 
 
     /// x1*x2+y1*y2+z1+z2
-    template <typename T>
-    T partDotProduct(const vec<T, 3> &v1, const vec<T, 3> &v2);
+    template <typename T, length_t L>
+    T partDotProduct(const vec<T, L> &v1, const vec<T, L> &v2);
 
     /// Dot product
-    template <typename T>
-    T dotProduct(const vec<T, 3> &v1, const vec<T, 3> &v2);
+    template <typename T, length_t L>
+    T dotProduct(const vec<T, L> &v1, const vec<T, L> &v2);
 
     /// Cross product
     template <typename T>
     vec<T, 3> crossProduct(const vec<T, 3> &v1, const vec<T, 3> &v2);
 
-    typedef vec<float, 2> vec2;
-    typedef vec<float, 3> vec3;
-    typedef vec<float, 4> vec4;
+    /// Check if two vectors are perpendicular
+    template <typename T, length_t L>
+    bool isPerpendicular(const vec<T, L> &v1, const vec<T, L> &v2);
 
-    typedef mat<float, 2> mat2;
-    typedef mat<float, 3> mat3;
-    typedef mat<float, 4> mat4;
+    /// Check if two double values are equal (using comparePrecision)
+    bool floatEqual(double f1, double f2);
+
+
+    typedef vec<double, 2> vec2;
+    typedef vec<double, 3> vec3;
+    typedef vec<double, 4> vec4;
+
+    typedef mat<double, 2> mat2;
+    typedef mat<double, 3> mat3;
+    typedef mat<double, 4> mat4;
 
 } // namespace mm
 
