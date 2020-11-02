@@ -71,6 +71,17 @@ namespace mm {
     template <typename T>
     mat<T, 4> rotate(const mat<T, 4> &identityMatrix, T angle, const vec<T, 3> &R);
 
+    /// Create ortohraphic projection matrix
+    ///
+    /// \param l Left
+    /// \param r Right
+    /// \param b Bottom
+    /// \param t Top
+    /// \param n Near
+    /// \param f Far
+    /// \return Orthographic projection matrix
+    mat<double, 4> makeOrthoMatrix(double l, double r, double b, double t, double n, double f);
+
     /// Create perspective projection matrix
     ///
     /// \param l Left

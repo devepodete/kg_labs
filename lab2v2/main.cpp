@@ -1,5 +1,5 @@
 #include <iostream>
-#include <chrono>
+//#include <chrono>
 
 //#include <glm/glm.hpp>
 //#include <glm/gtc/matrix_transform.hpp>
@@ -8,7 +8,6 @@
 
 #include "matrices.hpp"
 #include "figure.hpp"
-#include "conversion.hpp"
 
 
 constexpr int width = 800;
@@ -18,7 +17,9 @@ int main(){
     mm::vec3 cameraPos = {0.0, 0.0, -3.0};
     double cameraSpeed = 0.25;
     double FOV = 90;
-    double rotateAngle = 0.0;
+    double rotateAngleX = 0.0;
+    double rotateAngleY = 0.0;
+    double rotateAngleZ = 0.0;
 
 
     sf::RenderWindow window(sf::VideoMode(width, height), "NAKONECTO");
@@ -83,9 +84,17 @@ int main(){
                 } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
                     FOV -= 1.0;
                 } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
-                    rotateAngle += 1.0;
+                    rotateAngleX += 1.0;
                 } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::X)) {
-                    rotateAngle -= 1.0;
+                    rotateAngleX -= 1.0;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
+                    rotateAngleY += 1.0;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::V)) {
+                    rotateAngleY -= 1.0;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) {
+                    rotateAngleZ += 1.0;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) {
+                    rotateAngleZ -= 1.0;
                 }
 
 
@@ -94,24 +103,27 @@ int main(){
                 }
                 std::cout << "FOV:" << FOV << std::endl;
 
-                if (rotateAngle > 360.0 || rotateAngle < -360.0) {
-                    rotateAngle = 0.0;
+                if (rotateAngleX > 360.0 || rotateAngleX < -360.0) {
+                    rotateAngleX = 0.0;
                 }
 
             }
 
 
             auto model = mm::mat4(1.0);
-            model = mm::rotate(model, mm::radians(rotateAngle), mm::vec3(0.0, 1.0, 0.0));
+            model = mm::rotate(model, mm::radians(rotateAngleX), mm::vec3(1.0, 0.0, 0.0));
+            model = mm::rotate(model, mm::radians(rotateAngleY), mm::vec3(0.0, 1.0, 0.0));
+            model = mm::rotate(model, mm::radians(rotateAngleZ), mm::vec3(0.0, 0.0, 1.0));
 
             auto view = mm::mat4(1.0);
             view = mm::translate(view, cameraPos);
 
-            mm::mat4 projection;
-            projection = mm::perspective(mm::radians(FOV), (double)width/height, 0.1, 5.0);
-
+            mm::mat4 projection(1.0);
+            //projection = mm::perspective(mm::radians(FOV), (double)width/height, 0.1, 5.0);
+            projection = mm::ortho(-3.0, 3.0, -3.0, 3.0, 0.1, 5.0);
+            //std::cout << "Projection:\n";
+            //projection.print();
             mm::mat4 res = projection*view*model;
-
 
             window.clear(bgColor);
 
@@ -119,19 +131,25 @@ int main(){
             mm::vec3 cameraVector = {_cameraVector[0], _cameraVector[1], _cameraVector[2]};
             cameraVector *= -1.0;
 
-            std::cout << "Camera: ";
-            cameraVector.print();
-            std::cout << std::string(10, '-') << std::endl;
+            //std::cout << "Camera: ";
+            //cameraVector.print();
+            //std::cout << std::string(10, '-') << std::endl;
 
             std::vector<Triangle> newTriangles = myFigure.triangles;
             for (auto &triangle : newTriangles) {
+                //std::cout << "Triangle before: ";
+                //triangle.print();
+                //std::cout << "Normal before: ";
+                triangle.calculateNormalVector();
+                //triangle.getNormal().print();
+
                 triangle.applyTransform(res);
                 triangle.calculateNormalVector();
 
-                std::cout << "Triangle: ";
-                triangle.print();
-                std::cout << "Normal: ";
-                triangle.getNormal().print();
+                //std::cout << "Triangle after: ";
+                //triangle.print();
+                //std::cout << "Normal after: ";
+                //triangle.getNormal().print();
 
                 if (mm::partDotProduct(cameraVector, triangle.getNormal()) < 0) {
                     continue;

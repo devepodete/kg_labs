@@ -265,11 +265,11 @@ namespace mm {
         return res;
     }
 
-    mat<double, 4> ortho(double l, double r, double b, double t, double n, double f) {
+    mat<double, 4> makeOrthoMatrix(double l, double r, double b, double t, double n, double f) {
         mat<double, 4> res = {
                 {2.0/(r-l), 0.0, 0.0, -(r+l)/(r-l)},
                 {0.0, 2.0/(t-b), 0.0, -(t+b)/(t-b)},
-                {0.0, 0.0, 2.0/(f-n), -(f+n)/(f-n)},
+                {0.0, 0.0, -2.0/(f-n), -(f+n)/(f-n)},
                 {0.0, 0.0, 0.0, 1.0}
         };
 
@@ -280,9 +280,14 @@ namespace mm {
         double tangent = std::tan(fovY/2);
         double height = front * tangent;
         double width = height * aspectRatio;
-        //std::cout << "width: " << width << " height: " << height << std::endl;
+
+        std::cout << "width: " << width << " height: " << height << std::endl;
 
         return makePerspectiveMatrix(-width, width, -height, height, front, back);
+    }
+
+    mat<double, 4> ortho(double left, double right, double bottom, double top, double front, double back) {
+        return makeOrthoMatrix(left, right, bottom, top, front, back);
     }
 
 

@@ -102,8 +102,13 @@ public:
 
     void applyTransform(const mm::mat4 &transform) {
         for (auto &p : points) {
+            //std::cout << "\n----\n";
+            //p.print();
             p = transform * p.asVector();
+            //p.print();
+            //std::cout << "\n----\n";
             p /= p.w;
+            //std::cout << "\n----\n";
         }
     }
 
