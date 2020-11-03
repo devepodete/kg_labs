@@ -11,10 +11,17 @@
 
 Написана на ```Python```. Для совмещения виджетов с графиком использовал ```Tkinter```. Сам график рисовал при помощи ```Matplotlib```. ```Numpy``` использовал для математики.
 
+
 ### ЛР 2 :volcano:
 ![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab2/gif/demonstrate.gif)
 
 Написана на ```C++```. Для работы с окнами использовал ```GLFW```. API для настройки различных буферов, очередей и работы с железом - ```Vulkan```. ```GLM``` использовал для математики.
+
+
+### ЛР 2
+![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab2v2/demo.gif)
+
+Написана на ```C++```. Для работы с графикой использовал ```SFML```. Решил переписать с нуля, так как в предыдущей реализации была хрень.
 
 ### ЛР 7 :chart:
 ![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab7/gif/demonstrate.gif)
