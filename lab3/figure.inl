@@ -1,6 +1,8 @@
 #pragma once
 
 
+#include <buflist.h>
+
 sf::Color operator*(float f, sf::Color c) {
     c.r *= f;
     c.g *= f;
@@ -173,7 +175,7 @@ public:
 
 class Figure {
 public:
-    Figure() : lightSrc(nullptr) {}
+    Figure() = default;
 
     explicit Figure(const std::vector<Triangle> &newTriangles) : Figure() {
         triangles = newTriangles;
@@ -203,8 +205,8 @@ public:
         }
     }
 
-    void setLightSrc(Figure *f) {
-        lightSrc = f;
+    void addLightSrc(std::pair<Figure*, mm::vec4> p) {
+        lightSources.push_back({p.first, Point(p.second[0], p.second[1], p.second[2])});
     }
 
     void setColor(sf::Color c) {
@@ -232,8 +234,7 @@ public:
     }
 
     void draw(sf::RenderWindow *pWindow, const mm::mat4 &transform, const mm::vec3 &camera,
-              Point lightPos = Point(0, 0, 0), Point cameraPos = Point(0, 0, 0),
-              float specularPow = 8) const {
+              Point cameraPos = Point(0, 0, 0), float specularPow = 8) const {
 
         std::vector<Triangle> newCubeTriangles = triangles;
 
@@ -247,26 +248,30 @@ public:
                 continue;
             }
 
-            sf::Color resColor = color;
-            if (lightSrc != nullptr) {
-                Point lightPoint = lightPos;
+            sf::Color resColor = sf::Color(0,0,0);
+            if (lightSources.empty()) {
+                resColor = color;
+            }
+            for (const std::pair<Figure*, Point> lightSrcPair : lightSources) {
+                Figure *lightSrc = lightSrcPair.first;
+                Point lightPoint = lightSrcPair.second;
                 Point trianglePoint = oldTriangle.points[0];
                 mm::vec3 lightDir = (lightPoint-trianglePoint).asVector3();
 
                 float ambientStrength = 0.1;
                 sf::Color ambient = ambientStrength * lightSrc->getColor();
 
+                float diffStrength = 0.7;
                 float diff = std::max(mm::cosBetween(lightDir, oldTriangle.getNormal()), 0.0);
-                sf::Color diffuse = diff * lightSrc->getColor();
+                sf::Color diffuse = diffStrength * diff * lightSrc->getColor();
 
-                float specularStrength = 0.5;
+                float specularStrength = 1.0;
                 mm::vec3 viewDir = (trianglePoint - cameraPos).asVector3();
                 mm::vec3 reflectDir = mm::reflect(-lightDir, oldTriangle.getNormal());
                 float spec = std::pow(std::max(mm::cosBetween(viewDir, reflectDir), 0.0), specularPow);
                 sf::Color specular = specularStrength * spec * lightSrc->getColor();
 
-                resColor = (ambient + diffuse + specular) * color;
-
+                resColor += (ambient + diffuse + specular) * color;
             }
 
             std::vector<sf::Vertex> newTriangle = triangle.toWindowCords(pWindow->getSize().x, pWindow->getSize().y);
@@ -289,7 +294,7 @@ public:
     std::vector<Triangle> triangles;
 
 private:
-    Figure *lightSrc;
+    std::vector<std::pair<Figure*, Point>> lightSources;
 
     sf::Color color;
     sf::Color outlineColor;

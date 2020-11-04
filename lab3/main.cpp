@@ -22,23 +22,11 @@ Figure customFigure(size_t precision) {
 
     std::vector<float> radiuses = math::linspace(2.0f, 0.0f, precision);
 
-//    std::cout << "radiuses:\n";
-//    for (float f : radiuses) {
-//        std::cout << f << " ";
-//    }
-//    std::cout << '\n';
-
     std::vector<std::vector<std::pair<float, float>>> circles(precision);
 
-    //std::cout << "Circles:\n";
     for (size_t i = 0; i < precision; i++) {
         circles[i] = math::regularPolygon(precision+1, std::sqrt(radiuses[i]), 0.0, 0.0);
         circles[i].push_back(circles[i][0]);
-
-//        for (auto &c : circles[i]) {
-//            std::cout << c.first << " " << c.second << ", ";
-//        }
-//        std::cout << std::endl;
     }
 
     std::vector<Triangle> triangles;
@@ -65,10 +53,6 @@ Figure customFigure(size_t precision) {
         }
         z += zStep;
     }
-
-//    for (const Triangle &t : triangles) {
-//        t.print();
-//    }
 
     return Figure(triangles);
 }
@@ -106,17 +90,70 @@ Figure cubeFigure() {
 }
 
 
+std::vector<mm::vec3> light1Trajectory() {
+    size_t n = 500;
+    std::vector<mm::vec3> res(n);
+    std::vector<std::pair<float, float>> regPolygon = math::regularPolygon(n, 3.0, 0.0, 0.0);
+
+    for(size_t i = 0; i < n; i++) {
+        res[i][0] = regPolygon[i].first;
+        res[i][1] = regPolygon[i].second;
+        res[i][2] = 1.0;
+    }
+
+    return res;
+}
+
+std::vector<mm::vec3> light2Trajectory() {
+    size_t n = 500;
+    std::vector<mm::vec3> res(n);
+    std::vector<std::pair<float, float>> regPolygon = math::regularPolygon(n, 3.0, 0.0, 0.0);
+
+    for(size_t i = 0; i < n; i++) {
+        res[i][0] = regPolygon[i].first;
+        res[i][1] = 0.0;
+        res[i][2] = regPolygon[i].second;
+    }
+
+    return res;
+}
+
+std::vector<mm::vec3> light3Trajectory() {
+    size_t n = 500;
+    std::vector<mm::vec3> res(n);
+    std::vector<std::pair<float, float>> regPolygon = math::regularPolygon(n, 3.0, 0.0, 0.0);
+
+    for(size_t i = 0; i < n; i++) {
+        res[i][0] = 0.0;
+        res[i][1] = regPolygon[i].first;
+        res[i][2] = regPolygon[i].second;
+    }
+
+    return res;
+}
+
 int main(){
+    std::vector<mm::vec3> lightPositions = {{3.0, 0.0, 1.0}, {-3.0, 0.0, 1.0}};
+    std::vector<mm::vec3> light1PositionList = light1Trajectory();
+    std::vector<mm::vec3> light2PositionList = light2Trajectory();
+    std::vector<mm::vec3> light3PositionList = light3Trajectory();
+
+    size_t rotateIdx = 0;
+
+    size_t curLightPosition = 0;
+    double lightMoveSpeed = 0.5;
+    bool rotateLights = true;
+
+
     mm::vec3 cameraPos = {0.0, 0.0, -5.0};
-    mm::vec3 lightPos = {3.0, 0.0, 0.0};
     double cameraSpeed = 0.25;
     double rotateSpeed = 2.0;
     double FOV = 90;
     double rotateAngleX = 45.0;
     double rotateAngleY = 0.0;
     double rotateAngleZ = 90.0;
+
     size_t figurePrecision = 3;
-    sf::Color lightColor = sf::Color::White;
 
     float specularPow = 8;
 
@@ -128,15 +165,24 @@ int main(){
     sf::Color bgColor = sf::Color(20, 20, 20);
 
 
-    Figure cube = cubeFigure();
-    cube.setColor(lightColor);
-    cube.setOutlineThickness(0.0f);
+    Figure cube1 = cubeFigure();
+    cube1.setColor(sf::Color::Cyan);
+    cube1.setOutlineThickness(0.0f);
+
+    Figure cube2 = cubeFigure();
+    cube2.setColor(sf::Color::Yellow);
+    cube2.setOutlineThickness(0.0f);
+
+    Figure cube3 = cubeFigure();
+    cube3.setColor(sf::Color::Magenta);
+    cube3.setOutlineThickness(0.0f);
 
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
                 window.close();
+                break;
             } else if(event.type == sf::Event::KeyPressed) {
 
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad8)) {
@@ -171,22 +217,26 @@ int main(){
                     figurePrecision++;
                 } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
                     figurePrecision--;
-                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-                    lightPos[0] += 1.0;
-                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-                    lightPos[0] -= 1.0;
-                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-                    lightPos[1] += 1.0;
-                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-                    lightPos[1] -= 1.0;
-                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) {
-                    lightPos[2] += 1.0;
-                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
-                    lightPos[2] -= 1.0;
                 } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageUp)) {
                     specularPow++;
                 } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageDown)) {
                     specularPow--;
+                }
+
+                if (!rotateLights) {
+                    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
+                        lightPositions[curLightPosition][0] += lightMoveSpeed;
+                    } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
+                        lightPositions[curLightPosition][0] -= lightMoveSpeed;
+                    } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
+                        lightPositions[curLightPosition][1] += lightMoveSpeed;
+                    } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
+                        lightPositions[curLightPosition][1] -= lightMoveSpeed;
+                    } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) {
+                        lightPositions[curLightPosition][2] += lightMoveSpeed;
+                    } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+                        lightPositions[curLightPosition][2] -= lightMoveSpeed;
+                    }
                 }
 
                 if (specularPow < 0) {
@@ -201,7 +251,6 @@ int main(){
                 if (FOV > 180.0 || FOV < 0) {
                     FOV = 45.0;
                 }
-                //std::cout << "FOV:" << FOV << std::endl;
 
                 if (rotateAngleX > 360.0 || rotateAngleX < -360.0) {
                     rotateAngleX = 0.0;
@@ -210,18 +259,27 @@ int main(){
                 if (figurePrecision < 2) {
                     figurePrecision = 2;
                 }
+            } else if (event.type == sf::Event::MouseMoved) {
+
+                rotateIdx += 1;
+                rotateIdx %= light1PositionList.size();
             }
 
             window.clear(bgColor);
 
             Figure myFigure = customFigure(figurePrecision);
-            myFigure.setColor(sf::Color(255, 128, 60));
+            myFigure.setColor(sf::Color(255, 255, 255));
             myFigure.setOutlineColor(bgColor);
             myFigure.setOutlineThickness(0.0f);
 
             auto model = mm::mat4(1.0);
-            auto modelCube = mm::translate(model, lightPos);
-            modelCube = mm::scale(modelCube, mm::vec3(0.1, 0.1, 0.1));
+
+            auto modelCube1 = mm::translate(model, light1PositionList[rotateIdx]);
+            modelCube1 = mm::scale(modelCube1, mm::vec3(0.1, 0.1, 0.1));
+            auto modelCube2 = mm::translate(model, light2PositionList[rotateIdx]);
+            modelCube2 = mm::scale(modelCube2, mm::vec3(0.1, 0.1, 0.1));
+            auto modelCube3 = mm::translate(model, light3PositionList[rotateIdx]);
+            modelCube3 = mm::scale(modelCube3, mm::vec3(0.1, 0.1, 0.1));
 
             auto modelFigure = model;
 
@@ -236,20 +294,31 @@ int main(){
             projection = mm::perspective(mm::radians(FOV), (double)width/height, 0.1, 5.0);
             //projection = mm::ortho(-3.0, 3.0, -3.0, 3.0, 0.1, 5.0);
 
-            mm::mat4 resCube = projection*view*modelCube;
+            mm::mat4 resCube1 = projection*view*modelCube1;
+            mm::mat4 resCube2 = projection*view*modelCube2;
+            mm::mat4 resCube3 = projection*view*modelCube3;
             mm::mat4 resFigure = projection*view*modelFigure;
+
 
             mm::vec3 cameraVector = cameraPos;
             cameraVector *= -1.0;
             cameraVector.normalize();
 
 
-            myFigure.setLightSrc(&cube);
-            myFigure.draw(&window, resFigure, cameraVector, Point(lightPos[0], lightPos[1], lightPos[2]),
-                          Point(cameraPos[0], cameraPos[1], cameraPos[2]), specularPow);
-            cube.draw(&window, resCube, cameraVector);
+            myFigure.addLightSrc({&cube1, modelCube1 * cube1.triangles[0].points[0].asVector4()});
+            myFigure.addLightSrc({&cube2, modelCube2 * cube2.triangles[0].points[0].asVector4()});
+            myFigure.addLightSrc({&cube3, modelCube3 * cube3.triangles[0].points[0].asVector4()});
+
+            myFigure.draw(&window, resFigure, cameraVector, Point(cameraPos[0], cameraPos[1], cameraPos[2]),
+                          specularPow);
+
+            cube1.draw(&window, resCube1, cameraVector);
+            cube2.draw(&window, resCube2, cameraVector);
+            cube3.draw(&window, resCube3, cameraVector);
 
             window.display();
+
+
         }
     }
 

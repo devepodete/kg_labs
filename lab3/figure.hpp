@@ -12,6 +12,11 @@
 #include "matrices.hpp"
 #include "conversion.hpp"
 
+
+sf::Color operator*(float f, sf::Color c);
+sf::Color operator/(sf::Color c, float f);
+
+
 /// Point with float (x, y, z) values
 class Point;
 
