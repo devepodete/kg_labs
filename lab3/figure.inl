@@ -1,5 +1,23 @@
 #pragma once
 
+
+sf::Color operator*(float f, sf::Color c) {
+    c.r *= f;
+    c.g *= f;
+    c.b *= f;
+
+    return c;
+}
+
+sf::Color operator/(sf::Color c, float f) {
+    c.r /= f;
+    c.g /= f;
+    c.b /= f;
+
+    return c;
+}
+
+
 class Point {
 public:
     Point() = default;
@@ -50,11 +68,16 @@ public:
         return *this;
     }
 
-    [[nodiscard]] mm::vec4 asVector() const {
+    [[nodiscard]] mm::vec3 asVector3() const {
+        return mm::vec3(x, y, z);
+    }
+
+    [[nodiscard]] mm::vec4 asVector4() const {
         return mm::vec4(x, y, z, w);
     }
 
-    void print(char end = '\0') const {
+    void print(const std::string &name = "", char end = '\0') const {
+        std::cout << name;
         std::cout << "(" << x << ", " << y << ", " << z << ", " << w << ")" << end;
     }
 
@@ -108,7 +131,7 @@ public:
         for (auto &p : points) {
             //std::cout << "\n----\n";
             //p.print();
-            p = transform * p.asVector();
+            p = transform * p.asVector4();
             //p.print();
             //std::cout << "\n----\n";
             p /= p.w;
@@ -157,9 +180,9 @@ public:
 
 class Figure {
 public:
-    Figure() = default;
+    Figure() : lightSrc(nullptr) {}
 
-    explicit Figure(const std::vector<Triangle> &newTriangles) {
+    explicit Figure(const std::vector<Triangle> &newTriangles) : Figure() {
         triangles = newTriangles;
     }
 
@@ -187,13 +210,42 @@ public:
         }
     }
 
+    void setLightSrc(Figure *f) {
+        lightSrc = f;
+    }
+
+    void setColor(sf::Color c) {
+        color = c;
+    }
+
+    [[nodiscard]] sf::Color getColor() const {
+        return color;
+    }
+
+    void setOutlineColor(sf::Color c) {
+        outlineColor = c;
+    }
+
+    [[nodiscard]] sf::Color getOutlineColor() const {
+        return outlineColor;
+    }
+
+    void setOutlineThickness(float f) {
+        outlineThickness = f;
+    }
+
+    [[nodiscard]] float getOutlineThickness() const {
+        return outlineThickness;
+    }
+
     void draw(sf::RenderWindow *pWindow, const mm::mat4 &transform, const mm::vec3 &camera,
-              sf::Color figureColor = sf::Color::Red, float outlineThickness = 0.0f,
-              sf::Color outlineColor = sf::Color::White) {
+              Point lightPos = Point(0, 0, 0)) const {
 
         std::vector<Triangle> newCubeTriangles = triangles;
 
         for (auto &triangle: newCubeTriangles) {
+            Triangle oldTriangle = triangle;
+
             triangle.applyTransform(transform);
             triangle.calculateNormalVector();
 
@@ -201,14 +253,38 @@ public:
                 continue;
             }
 
+            sf::Color resColor = color;
+            if (lightSrc != nullptr) {
+                Point lightPoint = lightPos;
+                Point trianglePoint = oldTriangle.points[0];
+                mm::vec3 vectorToTriangle = (lightPoint-trianglePoint).asVector3();
+
+//                lightPoint.print("light", '\n');
+//                trianglePoint.print("triangle", '\n');
+//                vectorToTriangle.print("vec to triangle");
+//                triangle.getNormal().print("normal");
+//                std::cout << mm::partDotProduct(vectorToTriangle, oldTriangle.getNormal()) << std::endl;
+//                std::cout << std::string(10, '-') << std::endl;
+
+                //if (mm::partDotProduct(vectorToTriangle, oldTriangle.getNormal()) > 0) {
+                    float ambientStrength = 0.1f;
+                    sf::Color ambient = ambientStrength * lightSrc->getColor();
+
+                    float diff = std::max(mm::dotProduct(vectorToTriangle, oldTriangle.getNormal()), 0.0);
+                    sf::Color diffuse = diff * lightSrc->getColor();
+
+                    resColor = (ambient + diffuse) * color;
+                //}
+            }
+
             std::vector<sf::Vertex> newTriangle = triangle.toWindowCords(pWindow->getSize().x, pWindow->getSize().y);
 
             sf::ConvexShape cs;
             cs.setPointCount(3);
-            cs.setFillColor(figureColor);
+
             cs.setOutlineColor(outlineColor);
             cs.setOutlineThickness(outlineThickness);
-
+            cs.setFillColor(resColor);
             cs.setPoint(0, newTriangle[0].position);
             cs.setPoint(1, newTriangle[1].position);
             cs.setPoint(2, newTriangle[2].position);
@@ -219,4 +295,11 @@ public:
 
 public:
     std::vector<Triangle> triangles;
+
+private:
+    Figure *lightSrc;
+
+    sf::Color color;
+    sf::Color outlineColor;
+    float outlineThickness;
 };

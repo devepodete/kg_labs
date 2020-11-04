@@ -20,7 +20,7 @@ Figure customFigure(size_t precision) {
         throw std::runtime_error("minimum precision is 2");
     }
 
-    std::vector<float> radiuses = math::linspace(1.0f, 0.0f, precision);
+    std::vector<float> radiuses = math::linspace(2.0f, 0.0f, precision);
 
 //    std::cout << "radiuses:\n";
 //    for (float f : radiuses) {
@@ -114,7 +114,7 @@ int main(){
     double rotateAngleX = 0.0;
     double rotateAngleY = 0.0;
     double rotateAngleZ = 0.0;
-    size_t figurePrecision = 5;
+    size_t figurePrecision = 3;
 
 
     sf::ContextSettings settings;
@@ -125,6 +125,8 @@ int main(){
 
 
     Figure cube = cubeFigure();
+    cube.setColor(sf::Color::White);
+    cube.setOutlineThickness(0.0f);
 
     while (window.isOpen()) {
         sf::Event event;
@@ -185,7 +187,9 @@ int main(){
             window.clear(bgColor);
 
             Figure myFigure = customFigure(figurePrecision);
-
+            myFigure.setColor(sf::Color(255, 128, 60));
+            myFigure.setOutlineColor(bgColor);
+            myFigure.setOutlineThickness(-0.5f);
 
             auto model = mm::mat4(1.0);
             auto modelCube = mm::translate(model, mm::vec3(3.0, 0.0, 0.0));
@@ -211,10 +215,10 @@ int main(){
             cameraVector *= -1.0;
             cameraVector.normalize();
 
-            std::vector<Triangle> newTriangles = myFigure.triangles;
 
-            myFigure.draw(&window, resFigure, cameraVector, sf::Color(255, 128, 60), -0.5f, bgColor);
-            cube.draw(&window, resCube, cameraVector, sf::Color::White);
+            myFigure.setLightSrc(&cube);
+            myFigure.draw(&window, resFigure, cameraVector, Point(3.0, 0.0, 0.0));
+            cube.draw(&window, resCube, cameraVector);
 
             window.display();
         }
