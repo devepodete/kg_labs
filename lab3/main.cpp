@@ -93,7 +93,7 @@ Figure cubeFigure() {
     f.addTriangle(Triangle(p[2], p[6], p[5]));
     f.addTriangle(Triangle(p[2], p[3], p[6]));
     f.addTriangle(Triangle(p[3], p[7], p[6]));
-    f.addTriangle(Triangle(p[3], p[0], p[7]));
+    f.addTriangle(Triangle(p[0], p[7], p[3]));
     f.addTriangle(Triangle(p[0], p[4], p[7]));
 
     f.addTriangle(Triangle(p[4], p[5], p[6]));
@@ -104,6 +104,7 @@ Figure cubeFigure() {
 
     return f;
 }
+
 
 int main(){
     mm::vec3 cameraPos = {0.0, 0.0, -3.0};
@@ -120,11 +121,8 @@ int main(){
     settings.antialiasingLevel = 8;
 
     sf::RenderWindow window(sf::VideoMode(width, height), "NAKONECTO", sf::Style::Default, settings);
-
     sf::Color bgColor = sf::Color(20, 20, 20);
 
-    // figure height
-    double fh = 0.5;
 
     Figure cube = cubeFigure();
 
@@ -191,7 +189,7 @@ int main(){
 
             auto model = mm::mat4(1.0);
             auto modelCube = mm::translate(model, mm::vec3(3.0, 0.0, 0.0));
-            modelCube = mm::scale(modelCube, mm::vec3(0.25, 0.25, 0.25));
+            modelCube = mm::scale(modelCube, mm::vec3(0.1, 0.1, 0.1));
 
             auto modelFigure = model;
 
@@ -209,75 +207,14 @@ int main(){
             mm::mat4 resCube = projection*view*modelCube;
             mm::mat4 resFigure = projection*view*modelFigure;
 
-
-
             mm::vec3 cameraVector = cameraPos;
             cameraVector *= -1.0;
             cameraVector.normalize();
 
             std::vector<Triangle> newTriangles = myFigure.triangles;
-            //std::cout << "Triangles: " << newTriangles.size() << std::endl;
 
-            for (auto &triangle : newTriangles) {
-                triangle.applyTransform(resFigure);
-                triangle.calculateNormalVector();
-
-                //auto dot = mm::dotProduct(cameraVector, triangle.getNormal());
-                //std::cout << "dot: " << dot << std::endl;
-
-                if (mm::dotProduct(cameraVector, triangle.getNormal()) < 0.0) {
-                    continue;
-                }
-
-                std::vector<sf::Vertex> newTriangle = triangle.toWindowCords(width, height);
-
-                sf::ConvexShape cs;
-                cs.setPointCount(3);
-                cs.setFillColor(sf::Color(255, 128, 60));
-                cs.setOutlineColor(bgColor);
-                cs.setOutlineThickness(-0.5f);
-
-//                std::cout << "triangle: " << "(" << newTriangle[0].position.x << "," << newTriangle[0].position.y << ") "
-//                    << "(" << newTriangle[1].position.x << "," << newTriangle[1].position.y << ") "
-//                    << "(" << newTriangle[2].position.x << "," << newTriangle[2].position.y << ")\n";
-
-                cs.setPoint(0, newTriangle[0].position);
-                cs.setPoint(1, newTriangle[1].position);
-                cs.setPoint(2, newTriangle[2].position);
-
-                window.draw(cs);
-            }
-
-
-            std::vector<Triangle> newCubeTriangles = cube.triangles;
-            for (auto &triangle: newCubeTriangles) {
-                triangle.applyTransform(resCube);
-                triangle.calculateNormalVector();
-
-                //auto dot = mm::dotProduct(cameraVector, triangle.getNormal());
-                //std::cout << "dot: " << dot << std::endl;
-                //triangle.getNormal().print("normal");
-
-                if (mm::partDotProduct(cameraVector, triangle.getNormal()) < 0.0) {
-                    continue;
-                }
-
-                std::vector<sf::Vertex> newTriangle = triangle.toWindowCords(width, height);
-
-                sf::ConvexShape cs;
-                cs.setPointCount(3);
-                cs.setFillColor(sf::Color(255, 255, 255));
-                cs.setOutlineColor(bgColor);
-                cs.setOutlineThickness(-0.5f);
-
-                cs.setPoint(0, newTriangle[0].position);
-                cs.setPoint(1, newTriangle[1].position);
-                cs.setPoint(2, newTriangle[2].position);
-
-                window.draw(cs);
-            }
-
-            //std::cout << std::string(10, '-') << std::endl;
+            myFigure.draw(&window, resFigure, cameraVector, sf::Color(255, 128, 60), -0.5f, bgColor);
+            cube.draw(&window, resCube, cameraVector, sf::Color::White);
 
             window.display();
         }

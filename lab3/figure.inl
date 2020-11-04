@@ -134,11 +134,18 @@ public:
         return n;
     }
 
-    void print(char end = '\n') const {
+    void print(const std::string &name = "", char end = '\n') const {
+        std::cout << name << ": ";
         for (const auto &p : points) {
             p.print();
         }
         std::cout << end;
+    }
+
+    bool outsideWindow() {
+        return std::any_of(points.begin(), points.end(), [](Point p) {
+            return (p.x < -1.0 || p.x > 1.0 || p.y < -1.0 || p.y > 1.0);
+        });
     }
 
 public:
@@ -177,6 +184,36 @@ public:
         for (size_t i = 0; i < triangles.size(); i++) {
             std::cout << "Triangle [" << i << "]: ";
             triangles[i].print();
+        }
+    }
+
+    void draw(sf::RenderWindow *pWindow, const mm::mat4 &transform, const mm::vec3 &camera,
+              sf::Color figureColor = sf::Color::Red, float outlineThickness = 0.0f,
+              sf::Color outlineColor = sf::Color::White) {
+
+        std::vector<Triangle> newCubeTriangles = triangles;
+
+        for (auto &triangle: newCubeTriangles) {
+            triangle.applyTransform(transform);
+            triangle.calculateNormalVector();
+
+            if (mm::partDotProduct(camera, triangle.getNormal()) < 0.0) {
+                continue;
+            }
+
+            std::vector<sf::Vertex> newTriangle = triangle.toWindowCords(pWindow->getSize().x, pWindow->getSize().y);
+
+            sf::ConvexShape cs;
+            cs.setPointCount(3);
+            cs.setFillColor(figureColor);
+            cs.setOutlineColor(outlineColor);
+            cs.setOutlineThickness(outlineThickness);
+
+            cs.setPoint(0, newTriangle[0].position);
+            cs.setPoint(1, newTriangle[1].position);
+            cs.setPoint(2, newTriangle[2].position);
+
+            pWindow->draw(cs);
         }
     }
 

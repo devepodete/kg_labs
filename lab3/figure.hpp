@@ -7,6 +7,8 @@
 #include <array>
 #include <vector>
 
+#include <SFML/Graphics.hpp>
+
 #include "matrices.hpp"
 #include "conversion.hpp"
 
