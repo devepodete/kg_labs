@@ -46,6 +46,20 @@ namespace mm {
             return res;
         }
 
+        vec<T, L> operator-(const vec<T, L> &v) const {
+            vec<T, L> res = *this;
+
+            for (length_t i = 0; i < res.size(); i++) {
+                res[i] -= v[i];
+            }
+
+            return res;
+        }
+
+        vec<T, L> operator-() const {
+            return vec<T, L>(0.0) - (*this);
+        }
+
         vec<T, L> operator*(double d) const {
             vec<T, L> res;
             for (length_t i = 0; i < res.size(); i++) {
@@ -305,7 +319,7 @@ namespace mm {
 
 
     template <typename T, length_t L>
-    T partDotProduct(const vec<T, L> &v1, const vec<T, L> &v2) {
+    T dotProduct(const vec<T, L> &v1, const vec<T, L> &v2) {
         T res = 0;
         for (length_t i = 0; i < v1.size(); i++) {
             res += v1[i]*v2[i];
@@ -315,12 +329,8 @@ namespace mm {
     }
 
     template <typename T, length_t L>
-    T dotProduct(const vec<T, L> &v1, const vec<T, L> &v2) {
-        //v1.print("v1");
-        //std::cout << "v1 magnitude: " << v1.magnitude() << std::endl;
-        //v2.print("v2");
-        //std::cout << "v2 magnitude: " << v2.magnitude() << std::endl;
-        return partDotProduct(v1, v2) / (v1.magnitude() * v2.magnitude());
+    T cosBetween(const vec<T, L> &v1, const vec<T, L> &v2) {
+        return dotProduct(v1, v2) / (v1.magnitude() * v2.magnitude());
     }
 
 
@@ -341,6 +351,11 @@ namespace mm {
         } else {
             return (f1-f2) < comparePrecision;
         }
+    }
+
+    template <typename T, length_t L>
+    vec<T, L> reflect(const vec<T, L> &v1, const vec<T, L> &v2) {
+        return v1 - v2 * 2.0 * dotProduct(v1, v2);
     }
 
 

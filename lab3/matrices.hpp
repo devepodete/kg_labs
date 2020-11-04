@@ -113,11 +113,11 @@ namespace mm {
     mat<double, 4> perspective(double fovY, double aspectRatio, double front, double back);
 
 
-    /// x1*x2+y1*y2+z1+z2
+    /// cosine between two vectors
     template <typename T, length_t L>
-    T partDotProduct(const vec<T, L> &v1, const vec<T, L> &v2);
+    T cosBetween(const vec<T, L> &v1, const vec<T, L> &v2);
 
-    /// Dot product
+    /// x1*x2+y1*y2+z1+z2
     template <typename T, length_t L>
     T dotProduct(const vec<T, L> &v1, const vec<T, L> &v2);
 
@@ -132,6 +132,10 @@ namespace mm {
     /// Check if two double values are equal (using comparePrecision)
     bool floatEqual(double f1, double f2);
 
+
+    /// Reflect one vector relative to another
+    template <typename T, length_t L>
+    vec<T, L> reflect(const vec<T, L> &v1, const vec<T, L> &v2);
 
     typedef vec<double, 2> vec2;
     typedef vec<double, 3> vec3;

@@ -107,14 +107,18 @@ Figure cubeFigure() {
 
 
 int main(){
-    mm::vec3 cameraPos = {0.0, 0.0, -3.0};
+    mm::vec3 cameraPos = {0.0, 0.0, -5.0};
+    mm::vec3 lightPos = {3.0, 0.0, 0.0};
     double cameraSpeed = 0.25;
     double rotateSpeed = 2.0;
     double FOV = 90;
-    double rotateAngleX = 0.0;
+    double rotateAngleX = 45.0;
     double rotateAngleY = 0.0;
-    double rotateAngleZ = 0.0;
+    double rotateAngleZ = 90.0;
     size_t figurePrecision = 3;
+    sf::Color lightColor = sf::Color::White;
+
+    float specularPow = 8;
 
 
     sf::ContextSettings settings;
@@ -125,7 +129,7 @@ int main(){
 
 
     Figure cube = cubeFigure();
-    cube.setColor(sf::Color::White);
+    cube.setColor(lightColor);
     cube.setOutlineThickness(0.0f);
 
     while (window.isOpen()) {
@@ -167,8 +171,32 @@ int main(){
                     figurePrecision++;
                 } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
                     figurePrecision--;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
+                    lightPos[0] += 1.0;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
+                    lightPos[0] -= 1.0;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
+                    lightPos[1] += 1.0;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
+                    lightPos[1] -= 1.0;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) {
+                    lightPos[2] += 1.0;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+                    lightPos[2] -= 1.0;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageUp)) {
+                    specularPow++;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageDown)) {
+                    specularPow--;
                 }
 
+                if (specularPow < 0) {
+                    specularPow = 0;
+                }
+                if (specularPow > 32) {
+                    specularPow = 32;
+                }
+
+                std::cout << specularPow << std::endl;
 
                 if (FOV > 180.0 || FOV < 0) {
                     FOV = 45.0;
@@ -189,10 +217,10 @@ int main(){
             Figure myFigure = customFigure(figurePrecision);
             myFigure.setColor(sf::Color(255, 128, 60));
             myFigure.setOutlineColor(bgColor);
-            myFigure.setOutlineThickness(-0.5f);
+            myFigure.setOutlineThickness(0.0f);
 
             auto model = mm::mat4(1.0);
-            auto modelCube = mm::translate(model, mm::vec3(3.0, 0.0, 0.0));
+            auto modelCube = mm::translate(model, lightPos);
             modelCube = mm::scale(modelCube, mm::vec3(0.1, 0.1, 0.1));
 
             auto modelFigure = model;
@@ -217,7 +245,8 @@ int main(){
 
 
             myFigure.setLightSrc(&cube);
-            myFigure.draw(&window, resFigure, cameraVector, Point(3.0, 0.0, 0.0));
+            myFigure.draw(&window, resFigure, cameraVector, Point(lightPos[0], lightPos[1], lightPos[2]),
+                          Point(cameraPos[0], cameraPos[1], cameraPos[2]), specularPow);
             cube.draw(&window, resCube, cameraVector);
 
             window.display();

@@ -121,21 +121,14 @@ public:
         mm::vec<double, 3> v2(points[2].x - points[1].x, points[2].y - points[1].y,
                              points[2].z - points[1].z);
 
-        //v1.print("v1");
-        //v2.print("v2");
         n = mm::crossProduct(v1, v2);
         n.normalize();
     }
 
     void applyTransform(const mm::mat4 &transform) {
         for (auto &p : points) {
-            //std::cout << "\n----\n";
-            //p.print();
             p = transform * p.asVector4();
-            //p.print();
-            //std::cout << "\n----\n";
             p /= p.w;
-            //std::cout << "\n----\n";
         }
     }
 
@@ -239,7 +232,8 @@ public:
     }
 
     void draw(sf::RenderWindow *pWindow, const mm::mat4 &transform, const mm::vec3 &camera,
-              Point lightPos = Point(0, 0, 0)) const {
+              Point lightPos = Point(0, 0, 0), Point cameraPos = Point(0, 0, 0),
+              float specularPow = 8) const {
 
         std::vector<Triangle> newCubeTriangles = triangles;
 
@@ -249,7 +243,7 @@ public:
             triangle.applyTransform(transform);
             triangle.calculateNormalVector();
 
-            if (mm::partDotProduct(camera, triangle.getNormal()) < 0.0) {
+            if (mm::dotProduct(camera, triangle.getNormal()) < 0.0) {
                 continue;
             }
 
@@ -257,24 +251,22 @@ public:
             if (lightSrc != nullptr) {
                 Point lightPoint = lightPos;
                 Point trianglePoint = oldTriangle.points[0];
-                mm::vec3 vectorToTriangle = (lightPoint-trianglePoint).asVector3();
+                mm::vec3 lightDir = (lightPoint-trianglePoint).asVector3();
 
-//                lightPoint.print("light", '\n');
-//                trianglePoint.print("triangle", '\n');
-//                vectorToTriangle.print("vec to triangle");
-//                triangle.getNormal().print("normal");
-//                std::cout << mm::partDotProduct(vectorToTriangle, oldTriangle.getNormal()) << std::endl;
-//                std::cout << std::string(10, '-') << std::endl;
+                float ambientStrength = 0.1;
+                sf::Color ambient = ambientStrength * lightSrc->getColor();
 
-                //if (mm::partDotProduct(vectorToTriangle, oldTriangle.getNormal()) > 0) {
-                    float ambientStrength = 0.1f;
-                    sf::Color ambient = ambientStrength * lightSrc->getColor();
+                float diff = std::max(mm::cosBetween(lightDir, oldTriangle.getNormal()), 0.0);
+                sf::Color diffuse = diff * lightSrc->getColor();
 
-                    float diff = std::max(mm::dotProduct(vectorToTriangle, oldTriangle.getNormal()), 0.0);
-                    sf::Color diffuse = diff * lightSrc->getColor();
+                float specularStrength = 0.5;
+                mm::vec3 viewDir = (trianglePoint - cameraPos).asVector3();
+                mm::vec3 reflectDir = mm::reflect(-lightDir, oldTriangle.getNormal());
+                float spec = std::pow(std::max(mm::cosBetween(viewDir, reflectDir), 0.0), specularPow);
+                sf::Color specular = specularStrength * spec * lightSrc->getColor();
 
-                    resColor = (ambient + diffuse) * color;
-                //}
+                resColor = (ambient + diffuse + specular) * color;
+
             }
 
             std::vector<sf::Vertex> newTriangle = triangle.toWindowCords(pWindow->getSize().x, pWindow->getSize().y);
