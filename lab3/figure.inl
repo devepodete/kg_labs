@@ -233,7 +233,8 @@ public:
         return outlineThickness;
     }
 
-    void draw(sf::RenderWindow *pWindow, const mm::mat4 &transform, const mm::vec3 &camera,
+    void draw(sf::RenderWindow *pWindow, int width, int height,
+              const mm::mat4 &transform, const mm::vec3 &camera,
               Point cameraPos = Point(0, 0, 0), float specularPow = 8,
               float ambientStrength = 0.1, float diffStrength = 0.7,
               float specularStrength = 1.0) const {
@@ -276,7 +277,7 @@ public:
                 resColor += (ambient + diffuse + specular) * color;
             }
 
-            std::vector<sf::Vertex> newTriangle = triangle.toWindowCords(pWindow->getSize().x, pWindow->getSize().y);
+            std::vector<sf::Vertex> newTriangle = triangle.toWindowCords(width, height);
 
             sf::ConvexShape cs;
             cs.setPointCount(3);

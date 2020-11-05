@@ -157,7 +157,8 @@ int main(){
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
 
-    sf::RenderWindow window(sf::VideoMode(width, height), "NAKONECTO", sf::Style::Default, settings);
+    sf::RenderWindow window(sf::VideoMode(width, height), "https://vk.com/devepodete <- computer graphic labs",
+                            sf::Style::Default, settings);
     sf::Color bgColor = sf::Color(20, 20, 20);
 
 
@@ -303,12 +304,12 @@ int main(){
                 ", specular: " << specularStrength << std::endl;
             std::cout << std::string(10, '-') << std::endl;
 
-            myFigure.draw(&window, resFigure, cameraVector, Point(cameraPos[0], cameraPos[1], cameraPos[2]),
+            myFigure.draw(&window, width, height, resFigure, cameraVector, Point(cameraPos[0], cameraPos[1], cameraPos[2]),
                           specularPow, ambientStrength, diffStrength, specularStrength);
 
-            cube1.draw(&window, resCube1, cameraVector);
-            cube2.draw(&window, resCube2, cameraVector);
-            cube3.draw(&window, resCube3, cameraVector);
+            cube1.draw(&window, width, height, resCube1, cameraVector);
+            cube2.draw(&window, width, height, resCube2, cameraVector);
+            cube3.draw(&window, width, height, resCube3, cameraVector);
 
             window.display();
 
