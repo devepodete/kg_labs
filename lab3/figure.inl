@@ -206,7 +206,7 @@ public:
     }
 
     void addLightSrc(std::pair<Figure*, mm::vec4> p) {
-        lightSources.push_back({p.first, Point(p.second[0], p.second[1], p.second[2])});
+        lightSources.emplace_back(p.first, Point(p.second[0], p.second[1], p.second[2]));
     }
 
     void setColor(sf::Color c) {
@@ -234,7 +234,9 @@ public:
     }
 
     void draw(sf::RenderWindow *pWindow, const mm::mat4 &transform, const mm::vec3 &camera,
-              Point cameraPos = Point(0, 0, 0), float specularPow = 8) const {
+              Point cameraPos = Point(0, 0, 0), float specularPow = 8,
+              float ambientStrength = 0.1, float diffStrength = 0.7,
+              float specularStrength = 1.0) const {
 
         std::vector<Triangle> newCubeTriangles = triangles;
 
@@ -258,14 +260,14 @@ public:
                 Point trianglePoint = oldTriangle.points[0];
                 mm::vec3 lightDir = (lightPoint-trianglePoint).asVector3();
 
-                float ambientStrength = 0.1;
+                //float ambientStrength = 0.1;
                 sf::Color ambient = ambientStrength * lightSrc->getColor();
 
-                float diffStrength = 0.7;
+                //float diffStrength = 0.7;
                 float diff = std::max(mm::cosBetween(lightDir, oldTriangle.getNormal()), 0.0);
                 sf::Color diffuse = diffStrength * diff * lightSrc->getColor();
 
-                float specularStrength = 1.0;
+                //float specularStrength = 1.0;
                 mm::vec3 viewDir = (trianglePoint - cameraPos).asVector3();
                 mm::vec3 reflectDir = mm::reflect(-lightDir, oldTriangle.getNormal());
                 float spec = std::pow(std::max(mm::cosBetween(viewDir, reflectDir), 0.0), specularPow);

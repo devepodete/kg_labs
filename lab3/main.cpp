@@ -133,17 +133,11 @@ std::vector<mm::vec3> light3Trajectory() {
 }
 
 int main(){
-    std::vector<mm::vec3> lightPositions = {{3.0, 0.0, 1.0}, {-3.0, 0.0, 1.0}};
     std::vector<mm::vec3> light1PositionList = light1Trajectory();
     std::vector<mm::vec3> light2PositionList = light2Trajectory();
     std::vector<mm::vec3> light3PositionList = light3Trajectory();
 
     size_t rotateIdx = 0;
-
-    size_t curLightPosition = 0;
-    double lightMoveSpeed = 0.5;
-    bool rotateLights = true;
-
 
     mm::vec3 cameraPos = {0.0, 0.0, -5.0};
     double cameraSpeed = 0.25;
@@ -156,7 +150,9 @@ int main(){
     size_t figurePrecision = 3;
 
     float specularPow = 8;
-
+    float ambientStrength = 0.1;
+    float diffStrength = 0.7;
+    float specularStrength = 1.0;
 
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
@@ -166,15 +162,15 @@ int main(){
 
 
     Figure cube1 = cubeFigure();
-    cube1.setColor(sf::Color::Cyan);
+    cube1.setColor(sf::Color::Red);
     cube1.setOutlineThickness(0.0f);
 
     Figure cube2 = cubeFigure();
-    cube2.setColor(sf::Color::Yellow);
+    cube2.setColor(sf::Color::Green);
     cube2.setOutlineThickness(0.0f);
 
     Figure cube3 = cubeFigure();
-    cube3.setColor(sf::Color::Magenta);
+    cube3.setColor(sf::Color::Blue);
     cube3.setOutlineThickness(0.0f);
 
     while (window.isOpen()) {
@@ -221,32 +217,26 @@ int main(){
                     specularPow++;
                 } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageDown)) {
                     specularPow--;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::F1)) {
+                    ambientStrength -= 0.1;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::F2)) {
+                    ambientStrength += 0.1;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::F3)) {
+                    diffStrength -= 0.1;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::F4)) {
+                    diffStrength += 0.1;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::F5)) {
+                    specularStrength -= 0.1;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::F6)) {
+                    specularStrength += 0.1;
                 }
 
-                if (!rotateLights) {
-                    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-                        lightPositions[curLightPosition][0] += lightMoveSpeed;
-                    } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-                        lightPositions[curLightPosition][0] -= lightMoveSpeed;
-                    } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-                        lightPositions[curLightPosition][1] += lightMoveSpeed;
-                    } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-                        lightPositions[curLightPosition][1] -= lightMoveSpeed;
-                    } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) {
-                        lightPositions[curLightPosition][2] += lightMoveSpeed;
-                    } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
-                        lightPositions[curLightPosition][2] -= lightMoveSpeed;
-                    }
-                }
-
-                if (specularPow < 0) {
-                    specularPow = 0;
+                if (specularPow < 1) {
+                    specularPow = 1;
                 }
                 if (specularPow > 32) {
                     specularPow = 32;
                 }
-
-                std::cout << specularPow << std::endl;
 
                 if (FOV > 180.0 || FOV < 0) {
                     FOV = 45.0;
@@ -260,7 +250,6 @@ int main(){
                     figurePrecision = 2;
                 }
             } else if (event.type == sf::Event::MouseMoved) {
-
                 rotateIdx += 1;
                 rotateIdx %= light1PositionList.size();
             }
@@ -281,7 +270,7 @@ int main(){
             auto modelCube3 = mm::translate(model, light3PositionList[rotateIdx]);
             modelCube3 = mm::scale(modelCube3, mm::vec3(0.1, 0.1, 0.1));
 
-            auto modelFigure = model;
+            auto modelFigure = mm::mat4(1.0);
 
 
             auto view = mm::mat4(1.0);
@@ -309,8 +298,13 @@ int main(){
             myFigure.addLightSrc({&cube2, modelCube2 * cube2.triangles[0].points[0].asVector4()});
             myFigure.addLightSrc({&cube3, modelCube3 * cube3.triangles[0].points[0].asVector4()});
 
+            std::cout << "Specular power: " << specularPow << std::endl;
+            std::cout << "ambient: " << ambientStrength << ", diffusal: " << diffStrength <<
+                ", specular: " << specularStrength << std::endl;
+            std::cout << std::string(10, '-') << std::endl;
+
             myFigure.draw(&window, resFigure, cameraVector, Point(cameraPos[0], cameraPos[1], cameraPos[2]),
-                          specularPow);
+                          specularPow, ambientStrength, diffStrength, specularStrength);
 
             cube1.draw(&window, resCube1, cameraVector);
             cube2.draw(&window, resCube2, cameraVector);

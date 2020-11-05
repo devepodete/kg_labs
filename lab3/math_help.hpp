@@ -14,7 +14,12 @@ namespace math {
 
     const double pi = acos(-1.0);
 
-    //return evenly spaced numbers over a specified interval
+    /// Evenly spaced numbers over a specified interval [t1, t2]
+    ///
+    /// \param t1 Left border
+    /// \param t2 Right border
+    /// \param count Number of elements (including borders)
+    /// \return vector of evenly spaced numbers
     std::vector<float> linspace(float t1, float t2, unsigned count = 100) {
         if (count == 0) {
             return {};
@@ -55,6 +60,12 @@ namespace math {
         return res;
     }
 
+    /// Constructs 2d regular polygon
+    ///
+    /// \param n Number of vertices
+    /// \param r Radius
+    /// \param x0, y0 Center
+    /// \return Vector of regular polygon points
     std::vector<std::pair<float, float>> regularPolygon(size_t n, float r, float x0, float y0) {
         std::vector<std::pair<float, float>> res(n);
 

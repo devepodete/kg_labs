@@ -95,14 +95,8 @@ namespace mm {
 
     /// Create orthographic projection matrix
     ///
-    /// \param l Left
-    /// \param r Right
-    /// \param b Bottom
-    /// \param t Top
-    /// \param n Near
-    /// \param f Far
     /// \return Orthographic projection matrix
-    mat<double, 4> ortho(double l, double r, double b, double t, double n, double f);
+    mat<double, 4> ortho(double left, double right, double bottom, double top, double front, double back);
 
     /// Create perspective projection matrix
     ///
@@ -136,6 +130,7 @@ namespace mm {
     /// Reflect one vector relative to another
     template <typename T, length_t L>
     vec<T, L> reflect(const vec<T, L> &v1, const vec<T, L> &v2);
+
 
     typedef vec<double, 2> vec2;
     typedef vec<double, 3> vec3;

@@ -113,7 +113,7 @@ namespace mm {
             }
         }
 
-        void print(std::string name = "", char end = '\n') const {
+        void print(const std::string &name = "", char end = '\n') const {
             if (!name.empty()) {
                 std::cout << name << ": ";
             }
