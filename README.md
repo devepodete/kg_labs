@@ -14,18 +14,23 @@
 
 ### ЛР 2 :volcano:
 ![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab2/gif/demonstrate.gif)
+
 Написана на ```C++```. Для работы с окнами использовал ```GLFW```. API для настройки различных буферов, очередей и работы с железом - ```Vulkan```. ```GLM``` использовал для математики.
 
 
 ### ЛР 2 :tv:
 ![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab2v2/demo.gif)
+
 Написана на ```C++```. Для работы с графикой использовал ```SFML```. Решил переписать с нуля, так как в предыдущей реализации была хрень.
 
 
 ### ЛР 3 :high_brightness:
 ![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab3/demo.gif)
+
 Написана на ```C++```. Для работы с графикой использовал ```SFML```. Свет вычисляется как комбинация ambient, diffuse, specular.
+
 
 ### ЛР 7 :chart:
 ![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab7/gif/demonstrate.gif)
+
 Написана на ```C++```. Для работы с окнами и графическими примитивами использовал ```SFML```. Также написал пару своих примитивов - Checkbox и Button.
