@@ -2,9 +2,11 @@ cmake_minimum_required(VERSION 3.17)
 project(kg45)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
+set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+
 
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-set(LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(SOURCES "${SRC_DIR}/main.cpp")
 
 add_executable(${PROJECT_NAME} ${SOURCES})
