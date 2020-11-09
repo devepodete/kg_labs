@@ -30,6 +30,12 @@
 Написана на ```C++```. Для работы с графикой использовал ```SFML```. Свет вычисляется как комбинация ambient, diffuse, specular.
 
 
+### ЛР 4,5
+![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab45/demo.gif)
+
+Написана на ```C++```. Для работы с графикой использовал ```OpenGL```, функции загружал при помощи ```glad```. Для работы с окнами использовал ```GLFW```, для математики - ```GLM```.
+
+
 ### ЛР 7 :chart:
 ![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab7/gif/demonstrate.gif)
 
