@@ -27,15 +27,25 @@ GLuint attachAndLinkShaders(GLuint vertexShader, GLuint fragmentShader);
 
 
 std::pair<std::vector<float>, std::vector<unsigned>> customFigure(size_t precision);
-
+std::pair<std::vector<float>, std::vector<unsigned>> cubeFigure();
 
 const GLuint WIDTH = 800, HEIGHT = 600;
 int figurePrecision = 2;
 bool recalculateFigure = false;
+
 float FOV = 45.0f;
-glm::vec3 cameraPos = glm::vec3(2.0f, 0.0f, 2.0f);
-glm::vec3 cameraFront = glm::vec3(-2.0f, 0.0f, -2.0f);
+float RotateX = 0.0f;
+float RotateY = 0.0f;
+float RotateZ = 0.0f;
+glm::vec3 cameraPos = glm::vec3(4.0f, 0.0f, 4.0f);
+glm::vec3 cameraFront = glm::vec3(-1.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
+glm::vec3 lightPos(2.0f, 0.0f, 0.5f);
+
+float ambientStrength = 0.3;
+float diffuseStrength = 0.5;
+float specularStrength = 0.9;
+int specularPow = 32;
 
 int main() {
     glfwInit();
@@ -62,9 +72,11 @@ int main() {
 
     auto tempTriangles = customFigure(figurePrecision);
     std::vector<float> vertices = tempTriangles.first;
-    std::vector<unsigned int> indices = tempTriangles.second;
+    std::vector<unsigned> indices = tempTriangles.second;
 
-
+    auto tempCubeTriangles = cubeFigure();
+    std::vector<float> cubeVertices = tempCubeTriangles.first;
+    std::vector<unsigned> cubeIndices = tempCubeTriangles.second;
 
 
     GLuint vertexShader = createShader(GL_VERTEX_SHADER, "../shaders/shader.vert");
@@ -72,26 +84,51 @@ int main() {
     GLuint shaderProgram = attachAndLinkShaders(vertexShader, fragmentShader);
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+
+    GLuint lightVertexShader = createShader(GL_VERTEX_SHADER, "../shaders/lightShader.vert");
+    GLuint lightFragmentShader = createShader(GL_FRAGMENT_SHADER, "../shaders/lightShader.frag");
+    GLuint lightShaderProgram = attachAndLinkShaders(lightVertexShader, lightFragmentShader);
+    glDeleteShader(lightVertexShader);
+    glDeleteShader(lightFragmentShader);
     std::cout << "--- SHADERS INITIALIZED ---\n";
 
 
     GLuint VAO1, VBO1, EBO1;
     glGenVertexArrays(1, &VAO1);
+    glBindVertexArray(VAO1);
     glGenBuffers(1, &VBO1);
     glGenBuffers(1, &EBO1);
-    glBindVertexArray(VAO1);
-
+    
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO1);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO1);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size()*sizeof(unsigned int), indices.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned), indices.data(), GL_DYNAMIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *) 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *) 0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *) (3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*) (3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *) (6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    
+    GLuint lightVAO, lightVBO, lightEBO;
+    glGenVertexArrays(1, &lightVAO);
+    glBindVertexArray(lightVAO);
+    glGenBuffers(1, &lightVBO);
+    glGenBuffers(1, &lightEBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, lightVBO);
+    glBufferData(GL_ARRAY_BUFFER, cubeVertices.size() * sizeof(float), cubeVertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lightEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, cubeIndices.size() * sizeof(unsigned), cubeIndices.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) 0);
+    glEnableVertexAttribArray(0);
+
 
     glUseProgram(shaderProgram);
 
@@ -100,33 +137,58 @@ int main() {
     //glPolygonMode(GL_CCW, GL_LINE);
     glEnable(GL_DEPTH_TEST);
 
+    glm::mat4 projection = glm::perspective(glm::radians(FOV), (float) WIDTH / (float) HEIGHT, 0.1f, 100.0f);
+
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glBindVertexArray(VAO1);
+        glUseProgram(shaderProgram);
+        glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), 1.0f, 1.0f, 1.0f);
+        glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), lightPos.x, lightPos.y, lightPos.z);
+        glUniform3f(glGetUniformLocation(shaderProgram, "viewPos"), cameraPos.x, cameraPos.y, cameraPos.z);
+        glUniform1f(glGetUniformLocation(shaderProgram, "ambientStrength"), ambientStrength);
+        glUniform1f(glGetUniformLocation(shaderProgram, "diffuseStrength"), diffuseStrength);
+        glUniform1f(glGetUniformLocation(shaderProgram, "specularStrength"), specularStrength);
+        glUniform1i(glGetUniformLocation(shaderProgram, "specularPow"), specularPow);
+
 
         if (recalculateFigure) {
             tempTriangles = customFigure(figurePrecision);
             vertices = tempTriangles.first;
             indices = tempTriangles.second;
+            glNamedBufferData(VBO1, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
+            glNamedBufferData(EBO1, indices.size() * sizeof(unsigned), indices.data(), GL_DYNAMIC_DRAW);
             recalculateFigure = false;
         }
 
-        glNamedBufferData(VBO1, vertices.size()*sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
-        glNamedBufferData(EBO1, indices.size()*sizeof(unsigned int), indices.data(), GL_DYNAMIC_DRAW);
-
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, (float)glfwGetTime()/2.0f, glm::vec3(0.0, 0.0, 1.0));
+        //model = glm::rotate(model, (float) glfwGetTime() / 2.0f, glm::vec3(0.0, 0.0, 1.0));
         //model = glm::scale(model, glm::vec3(0.7, 0.5, 0.5));
         glm::mat4 view = glm::mat4(1.0f);
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-        glm::mat4 projection = glm::perspective(glm::radians(FOV), (float) WIDTH / (float) HEIGHT, 0.1f, 100.0f);
 
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-        //glDrawArrays(GL_TRIANGLES, 0, indices.size());
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+
+
+        glBindVertexArray(lightVAO);
+        glUseProgram(lightShaderProgram);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.1f));
+
+        glUniformMatrix4fv(glGetUniformLocation(lightShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(glGetUniformLocation(lightShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(lightShaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        glUniform3f(glGetUniformLocation(lightShaderProgram, "lightColor"), 1.0f, 1.0f, 1.0f);
+
+        //glDrawArrays(GL_TRIANGLES, 0, indices.size());
+        glDrawElements(GL_TRIANGLES, cubeIndices.size(), GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -137,6 +199,11 @@ int main() {
     glDeleteBuffers(1, &EBO1);
     glDeleteProgram(shaderProgram);
 
+//    glDeleteVertexArrays(1, &lightVAO);
+//    glDeleteBuffers(1, &lightVBO);
+//    glDeleteBuffers(1, &lightEBO);
+//    glDeleteProgram(lightShaderProgram);
+
     glfwTerminate();
 
     return EXIT_SUCCESS;
@@ -145,18 +212,22 @@ int main() {
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode) {
     //std::cout << key << std::endl;
-    const float cameraSpeed = 0.05f;
+    float lightSpeed = 0.3f;
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GL_TRUE);
 
     } else if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        cameraPos += cameraSpeed * cameraFront;
+        lightPos.x -= lightSpeed;
+        //cameraPos += cameraSpeed * cameraFront;
     } else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        cameraPos -= cameraSpeed * cameraFront;
+        lightPos.x += lightSpeed;
+        //cameraPos -= cameraSpeed * cameraFront;
     } else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        lightPos.y -= lightSpeed;
+        //cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     } else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        lightPos.y += lightSpeed;
+        //cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 
     } else if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) {
         figurePrecision++;
@@ -239,46 +310,123 @@ GLuint attachAndLinkShaders(GLuint vertexShader, GLuint fragmentShader) {
     return shaderProgram;
 }
 
-std::pair<std::vector<float>, std::vector<unsigned int>> customFigure(size_t precision) {
-    std::vector<float> radiuses = math::linspace(1.0f, 0.0f, precision);
+std::pair<std::vector<float>, std::vector<unsigned>> customFigure(size_t precision) {
+    float figureR = 0.7f;
+    float figureG = 0.4f;
+    float figureB = 0.3f;
+    
+    float sphereX = 0.0f;
+    float sphereY = 0.0f;
+    float sphereRadius = 1.0f;
+    std::vector<float> radiuses = math::linspace(sphereRadius, 0.0f, precision);
 
     std::vector<std::vector<std::pair<float, float>>> circles(precision);
 
+    float z = 0.0f;
+    float zStep = sphereRadius / circles.size();
+
     for (size_t i = 0; i < precision; i++) {
-        circles[i] = math::regularPolygon(precision+1, std::sqrt(radiuses[i]), 0.0, 0.0);
+        circles[i] = math::regularPolygon(precision + 1, std::sqrt(sphereRadius * sphereRadius - z * z), sphereX,
+                                          sphereY);
         circles[i].push_back(circles[i][0]);
+        //std::cout << std::sqrt(1.0f - z * z) << " ";
+        z += zStep;
     }
 
     std::vector<float> triangles;
-    float z = 0.0f;
-    float zStep = 1.0f / circles.size();
+    z = 0.0f;
+    zStep = 1.0f / circles.size();
 
-    for (size_t i = 0; i < circles.size()-1; i++) {
-        for (size_t j = 0; j < circles[i].size()-1; j++) {
+    for (size_t i = 0; i < circles.size() - 1; i++) {
+        for (size_t j = 0; j < circles[i].size() - 1; j++) {
+            glm::vec3 v1(circles[i][j + 1].first-circles[i][j].first,
+                         circles[i][j + 1].second-circles[i][j].second,
+                         z-z);
+            glm::vec3 v2(circles[i + 1][j].first-circles[i][j + 1].first,
+                         circles[i + 1][j].second-circles[i][j + 1].second,
+                         z + zStep - z);
+            glm::vec3 n = glm::cross(v1, v2);
+            //std::cout << n.x << " " << n.y << " " << n.z << std::endl;
+
             triangles.insert(triangles.end(), {
-                    circles[i][j].first, circles[i][j].second, z, 1.0f, 1.0f, 1.0f,
-                    circles[i][j+1].first, circles[i][j+1].second, z, 1.0f, 1.0f, 1.0f,
-                    circles[i+1][j].first, circles[i+1][j].second, z + zStep, 1.0f, 1.0f, 1.0f,
+                    circles[i][j].first, circles[i][j].second, z, n.x, n.y, n.z, figureR, figureG, figureB,
+                    circles[i][j + 1].first, circles[i][j + 1].second, z, n.x, n.y, n.z, figureR, figureG, figureB,
+                    circles[i + 1][j].first, circles[i + 1][j].second, z + zStep, n.x, n.y, n.z, figureR, figureG, figureB,
             });
 
-            if (i+1 == circles.size()-1) {
-                continue;
+            v1 = glm::vec3(circles[i + 1][j + 1].first-circles[i][j + 1].first,
+                           circles[i + 1][j + 1].second-circles[i][j + 1].second,
+                           z + zStep - z);
+            v2 = glm::vec3(circles[i + 1][j].first-circles[i + 1][j + 1].first,
+                           circles[i + 1][j].second-circles[i + 1][j + 1].second,
+                           z + zStep - (z + zStep));
+            n = glm::cross(v1, v2);
+
+            triangles.insert(triangles.end(), {
+                    circles[i][j + 1].first, circles[i][j + 1].second, z, n.x, n.y, n.z, figureR, figureG, figureB,
+                    circles[i + 1][j + 1].first, circles[i + 1][j + 1].second, z + zStep, n.x, n.y, n.z, figureR, figureG, figureB,
+                    circles[i + 1][j].first, circles[i + 1][j].second, z + zStep, n.x, n.y, n.z, figureR, figureG, figureB,
+            });
+
+
+            if (i + 1 == circles.size() - 1) {
+                v1 = glm::vec3(circles[i + 1][j + 1].first-circles[i + 1][j].first,
+                               circles[i + 1][j + 1].second-circles[i + 1][j].second,
+                               z + zStep - (z + zStep));
+                v2 = glm::vec3(sphereX-circles[i + 1][j + 1].first,
+                               sphereY-circles[i + 1][j + 1].second,
+                               sphereRadius - (z + zStep));
+                n = glm::cross(v1, v2);
+
+                triangles.insert(triangles.end(), {
+                        circles[i + 1][j].first, circles[i + 1][j].second, z + zStep, n.x, n.y, n.z, figureR, figureG, figureB,
+                        circles[i + 1][j + 1].first, circles[i + 1][j + 1].second, z + zStep, n.x, n.y, n.z, figureR, figureG, figureB,
+                        sphereX, sphereY, sphereRadius, n.x, n.y, n.z, figureR, figureG, figureB,
+                });
             }
-
-            triangles.insert(triangles.end(), {
-                    circles[i][j + 1].first, circles[i][j + 1].second, z,  1.0f, 1.0f, 1.0f,
-                    circles[i + 1][j + 1].first, circles[i + 1][j + 1].second, z + zStep,  1.0f, 1.0f, 1.0f,
-                    circles[i + 1][j].first, circles[i + 1][j].second, z + zStep,  1.0f, 1.0f, 1.0f,
-            });
         }
         z += zStep;
     }
 
 
-    std::vector<unsigned int> indices(triangles.size()/6);
+    std::vector<unsigned> indices(triangles.size() / 9);
     for (size_t i = 0; i < indices.size(); i++) {
         indices[i] = i;
     }
 
     return {triangles, indices};
+}
+
+std::pair<std::vector<float>, std::vector<unsigned>> cubeFigure() {
+
+    std::vector<float> vertices = {
+            1.0, 1.0, -1.0, //0
+            -1.0, 1.0, -1.0,
+            -1.0, -1.0, -1.0,
+            1.0, -1.0, -1.0,
+
+            1.0, 1.0, 1.0, //4
+            -1.0, 1.0, 1.0,
+            -1.0, -1.0, 1.0,
+            1.0, -1.0, 1.0,
+    };
+    std::vector<unsigned> indices = {
+            0, 1, 4,
+            1, 5, 4,
+            1, 2, 5,
+            2, 6, 5,
+            2, 3, 6,
+            3, 7, 6,
+            0, 7, 3,
+            0, 4, 7,
+
+            4, 5, 6,
+            6, 7, 4,
+
+            0, 2, 1,
+            0, 3, 2,
+    };
+
+
+    return {vertices, indices};
 }
