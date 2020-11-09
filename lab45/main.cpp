@@ -43,7 +43,7 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
 glm::vec3 lightPos(2.0f, 0.0f, 0.5f);
 
 float ambientStrength = 0.3;
-float diffuseStrength = 0.5;
+float diffuseStrength = 0.7;
 float specularStrength = 0.9;
 int specularPow = 32;
 
@@ -168,6 +168,9 @@ int main() {
         //model = glm::scale(model, glm::vec3(0.7, 0.5, 0.5));
         glm::mat4 view = glm::mat4(1.0f);
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        view = glm::rotate(view, glm::radians(RotateX), glm::vec3(1.0, 0.0, 0.0));
+        view = glm::rotate(view, glm::radians(RotateY), glm::vec3(0.0, 1.0, 0.0));
+        view = glm::rotate(view, glm::radians(RotateZ), glm::vec3(0.0, 0.0, 1.0));
 
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
@@ -213,21 +216,35 @@ int main() {
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode) {
     //std::cout << key << std::endl;
     float lightSpeed = 0.3f;
+    float rotateSpeed = 3.0f;
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GL_TRUE);
 
     } else if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
         lightPos.x -= lightSpeed;
-        //cameraPos += cameraSpeed * cameraFront;
     } else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
         lightPos.x += lightSpeed;
-        //cameraPos -= cameraSpeed * cameraFront;
     } else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
         lightPos.y -= lightSpeed;
-        //cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     } else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
         lightPos.y += lightSpeed;
-        //cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    } else if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+        lightPos.z -= lightSpeed;
+    } else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+        lightPos.z += lightSpeed;
+
+    } else if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
+        RotateZ += rotateSpeed;
+    } else if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
+        RotateZ -= rotateSpeed;
+    } else if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+        RotateY += rotateSpeed;
+    } else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+        RotateY -= rotateSpeed;
+    } else if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+        RotateX += rotateSpeed;
+    } else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+        RotateX -= rotateSpeed;
 
     } else if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) {
         figurePrecision++;
@@ -235,8 +252,26 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
     } else if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS) {
         figurePrecision--;
         recalculateFigure = true;
+    } else if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS) {
+        ambientStrength = std::max(std::min(ambientStrength-0.1f, 1.0f), 0.0f);
+    } else if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS) {
+        ambientStrength = std::max(std::min(ambientStrength+0.1f, 1.0f), 0.0f);
+    } else if (glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS) {
+        diffuseStrength = std::max(std::min(diffuseStrength-0.1f, 1.0f), 0.0f);
+    } else if (glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS) {
+        diffuseStrength = std::max(std::min(diffuseStrength+0.1f, 1.0f), 0.0f);
+    } else if (glfwGetKey(window, GLFW_KEY_F5) == GLFW_PRESS) {
+        specularStrength = std::max(std::min(specularStrength-0.1f, 1.0f), 0.0f);
+    } else if (glfwGetKey(window, GLFW_KEY_F6) == GLFW_PRESS) {
+        specularStrength = std::max(std::min(specularStrength+0.1f, 1.0f), 0.0f);
+    } else if (glfwGetKey(window, GLFW_KEY_F7) == GLFW_PRESS) {
+        specularPow = std::max(std::min(specularPow-1, 32), 1);
+    } else if (glfwGetKey(window, GLFW_KEY_F8) == GLFW_PRESS) {
+        specularPow = std::max(std::min(specularPow+1, 32), 1);
     }
 
+    std::cout << "amb: " << ambientStrength << ", diff: " << diffuseStrength << ", spec: " << specularStrength <<
+    " | " << specularPow << '\n';
     if (figurePrecision < 2) {
         figurePrecision = 2;
     }
