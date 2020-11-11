@@ -145,9 +145,10 @@ int main() {
 
         glBindVertexArray(VAO1);
         glUseProgram(shaderProgram);
+
         glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), 1.0f, 1.0f, 1.0f);
         glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), lightPos.x, lightPos.y, lightPos.z);
-        glUniform3f(glGetUniformLocation(shaderProgram, "viewPos"), cameraPos.x, cameraPos.y, cameraPos.z);
+
         glUniform1f(glGetUniformLocation(shaderProgram, "ambientStrength"), ambientStrength);
         glUniform1f(glGetUniformLocation(shaderProgram, "diffuseStrength"), diffuseStrength);
         glUniform1f(glGetUniformLocation(shaderProgram, "specularStrength"), specularStrength);
@@ -172,6 +173,10 @@ int main() {
         view = glm::rotate(view, glm::radians(RotateY), glm::vec3(0.0, 1.0, 0.0));
         view = glm::rotate(view, glm::radians(RotateZ), glm::vec3(0.0, 0.0, 1.0));
 
+        glm::vec3 tempCameraPos = glm::vec3(glm::vec4(cameraPos, 1.0) * view);
+
+        glUniform3f(glGetUniformLocation(shaderProgram, "viewPos"), tempCameraPos.x, tempCameraPos.y, tempCameraPos.z);
+
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
@@ -190,7 +195,6 @@ int main() {
         glUniformMatrix4fv(glGetUniformLocation(lightShaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
         glUniform3f(glGetUniformLocation(lightShaderProgram, "lightColor"), 1.0f, 1.0f, 1.0f);
 
-        //glDrawArrays(GL_TRIANGLES, 0, indices.size());
         glDrawElements(GL_TRIANGLES, cubeIndices.size(), GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
@@ -202,10 +206,10 @@ int main() {
     glDeleteBuffers(1, &EBO1);
     glDeleteProgram(shaderProgram);
 
-//    glDeleteVertexArrays(1, &lightVAO);
-//    glDeleteBuffers(1, &lightVBO);
-//    glDeleteBuffers(1, &lightEBO);
-//    glDeleteProgram(lightShaderProgram);
+    glDeleteVertexArrays(1, &lightVAO);
+    glDeleteBuffers(1, &lightVBO);
+    glDeleteBuffers(1, &lightEBO);
+    glDeleteProgram(lightShaderProgram);
 
     glfwTerminate();
 
