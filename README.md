@@ -4,7 +4,6 @@
 ![GitHub language count](https://img.shields.io/github/languages/count/devepodete/kg_labs)
 ![GitHub top language](https://img.shields.io/github/languages/top/devepodete/kg_labs?color=green)
 ![GitHub last commit](https://img.shields.io/github/last-commit/devepodete/kg_labs?color=yellow)
-![Contributors Welcome](https://img.shields.io/badge/contributors-welcome-brightgreen)
 
 ### ЛР 1 :chart_with_upwards_trend:
 ![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab1/gif/demonstrate.gif)
