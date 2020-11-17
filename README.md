@@ -5,6 +5,13 @@
 ![GitHub top language](https://img.shields.io/github/languages/top/devepodete/kg_labs?color=green)
 ![GitHub last commit](https://img.shields.io/github/last-commit/devepodete/kg_labs?color=yellow)
 
+
+### КП
+![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/kp/demo.gif)
+
+Написана на ```C++```. Для работы с графикой использовал ```OpenGL```, функции загружал при помощи ```glad```. Для работы с окнами использовал ```GLFW```, для математики - ```GLM```. Для пользовательского интерфейса использовал ```ImGui```.
+
+
 ### ЛР 1 :chart_with_upwards_trend:
 ![Gif Demo](https://github.com/devepodete/kg_labs/blob/main/lab1/gif/demonstrate.gif)
 
