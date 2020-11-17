@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <thread>
 #include <cmath>
 
 #include <glad/glad.h>
@@ -39,10 +38,10 @@ std::vector<crv::point3> cardioid(float a, int precision);
 
 std::pair<std::vector<float>, std::vector<unsigned>> cubeFigure();
 
-const char* glsl_version = "#version 450";
+const char *glsl_version = "#version 450";
 
-const GLuint width = 1000, height = 600;
-const GLuint settings_width = 640, settings_height = 480;
+const GLuint width = 800, height = 600;
+const GLuint settings_width = 470, settings_height = 400;
 
 int figurePrecision = 40;
 bool recalculateFigure = false;
@@ -72,9 +71,19 @@ float specularStrength = 0.9;
 int specularPow = 32;
 
 bool fillDraw = true;
+bool gridDraw = true;
+
+enum {
+    IMGUI_LIGHT_SCHEME,
+    IMGUI_DARK_SCHEME,
+    IMGUI_CLASSIC_SCHEME
+};
+int curScheme = IMGUI_LIGHT_SCHEME;
 
 int main() {
-    glfwInit();
+    if (!glfwInit()) {
+        throw std::runtime_error("failed to initialize glfw");
+    }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -87,7 +96,7 @@ int main() {
         glfwTerminate();
         return EXIT_FAILURE;
     }
-
+    glfwSetWindowPos(main_window, 20, 20);
     glfwSetKeyCallback(main_window, key_callback);
     glfwSetFramebufferSizeCallback(main_window, framebuffer_size_callback);
 
@@ -96,22 +105,7 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    std::vector<crv::point3> keyPoints = {{0, 0, 0}, {3, 3, -2}, {3, -3, 2}};
-
-    auto tempTriangles = customFigure(keyPoints, figurePrecision);
-    std::vector<float> vertices = tempTriangles.first;
-    std::cout << "vertices: " << vertices.size() << std::endl;
-//    for (size_t i = 0; i < vertices.size(); i += 9) {
-//        std::cout << vertices[i] << "," << vertices[i+1]<< "," << vertices[i+2] << '\n';
-//    }
-    std::vector<unsigned> indices = tempTriangles.second;
-
-    auto tempCubeTriangles = cubeFigure();
-    std::vector<float> cubeVertices = tempCubeTriangles.first;
-    std::vector<unsigned> cubeIndices = tempCubeTriangles.second;
-
     glViewport(0, 0, width, height);
-
     GLuint vertexShader = createShader(GL_VERTEX_SHADER, "../shaders/shader.vert");
     GLuint fragmentShader = createShader(GL_FRAGMENT_SHADER, "../shaders/shader.frag");
     GLuint shaderProgram = attachAndLinkShaders(vertexShader, fragmentShader);
@@ -124,6 +118,18 @@ int main() {
     glDeleteShader(lightVertexShader);
     glDeleteShader(lightFragmentShader);
     std::cout << "--- SHADERS INITIALIZED ---\n";
+
+
+    std::vector<crv::point3> keyPoints = {{0, 0, 0}, {3, 3, -2}, {3, -3, 2}};
+
+    auto tempTriangles = customFigure(keyPoints, figurePrecision);
+    std::vector<float> vertices = tempTriangles.first;
+    std::cout << "vertices: " << vertices.size() << std::endl;
+    std::vector<unsigned> indices = tempTriangles.second;
+
+    auto tempCubeTriangles = cubeFigure();
+    std::vector<float> cubeVertices = tempCubeTriangles.first;
+    std::vector<unsigned> cubeIndices = tempCubeTriangles.second;
 
 
     GLuint VAO1, VBO1, EBO1;
@@ -143,8 +149,6 @@ int main() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *) (3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    //glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *) (6 * sizeof(float)));
-    //glEnableVertexAttribArray(2);
 
 
     GLuint lightVAO, lightVBO, lightEBO;
@@ -172,29 +176,48 @@ int main() {
     glm::mat4 projection = glm::perspective(glm::radians(FOV), (float) width / (float) height, 0.1f, 100.0f);
 
 
+    /*
+    WINDOW 2
+    */
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+
+    GLFWwindow *settings_window = glfwCreateWindow(settings_width, settings_height, "Settings", NULL, NULL);
+    glfwMakeContextCurrent(settings_window);
+    if (settings_window == NULL) {
+        std::cout << "Failed to create GLFW settings_window" << std::endl;
+        glfwTerminate();
+        return EXIT_FAILURE;
+    }
+    glfwSetWindowPos(settings_window, 1000, 300);
+
+    glfwSetKeyCallback(settings_window, key_callback);
+    glfwSetFramebufferSizeCallback(settings_window, framebuffer_size_callback);
+
+
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
-    io.Fonts->AddFontFromFileTTF("../imgui/fonts/ProggyClean.ttf", 15.0f);
+    io.Fonts->AddFontFromFileTTF("../imgui/fonts/ProggyClean.ttf", 13.0f);
 
-    ImGui_ImplGlfw_InitForOpenGL(main_window, true);
+    ImGui_ImplGlfw_InitForOpenGL(settings_window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    ImGui::StyleColorsLight();
-    ImVec4 figureColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    ImVec4 outlineColor = ImVec4(1.0f, 0.0f, 0.0f, 1.00f);
+
+    ImVec4 figureColor = ImVec4(0.45f, 0.55f, 0.60f, 1.0f);
+    ImVec4 outlineColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
 
     glLineWidth(0.5f);
     glEnable(GL_LINE_SMOOTH);
 
-    while (!glfwWindowShouldClose(main_window)) {
+    while (!glfwWindowShouldClose(main_window) && !glfwWindowShouldClose(settings_window)) {
         glfwPollEvents();
 
+        glfwMakeContextCurrent(main_window);
+
         float time = (float) glfwGetTime();
-
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
 
         glClearColor(0.1f, 0.0f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -214,14 +237,9 @@ int main() {
 
 
         if (recalculateFigure) {
-            //std::cout << "Recalculating...\n";
             tempTriangles = customFigure(keyPoints, figurePrecision);
-            std::cout << "flattering: " << figureFlattening << '\n';
-            //std::cout << "Recalculated\n";
             vertices = tempTriangles.first;
             indices = tempTriangles.second;
-            //std::cout << "1 vertices: " << vertices.size() << '\n';
-            //std::cout << "1 indices: " << indices.size() << '\n';
             glNamedBufferData(VBO1, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
             glNamedBufferData(EBO1, indices.size() * sizeof(unsigned), indices.data(), GL_DYNAMIC_DRAW);
             recalculateFigure = false;
@@ -232,7 +250,7 @@ int main() {
         //scaleZ = std::abs(std::cos(time * scaleSpeed / 6)) + 0.5f;
 
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(-0.5f, -0.5f, -0.5f));
+        //model = glm::translate(model, glm::vec3(-1.0f, -1.0f, -1.0f));
         //model = glm::rotate(model, (float) glfwGetTime() / 2.0f, glm::vec3(0.0, 0.0, 1.0));
         float totalScale = figureFlattening * scaleCoeff;
         model = glm::scale(model, glm::vec3(totalScale, totalScale, totalScale));
@@ -255,8 +273,10 @@ int main() {
             glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), figureColor.x, figureColor.y, figureColor.z);
             glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
         }
-        glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), outlineColor.x, outlineColor.y, outlineColor.z);
-        glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
+        if (gridDraw) {
+            glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), outlineColor.x, outlineColor.y, outlineColor.z);
+            glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
+        }
 
 
         glBindVertexArray(lightVAO);
@@ -276,34 +296,93 @@ int main() {
 
         glDrawElements(GL_TRIANGLES, cubeIndices.size(), GL_UNSIGNED_INT, 0);
 
-        ImGui::Begin("Settings");
-        ImGui::SliderFloat("Scale", &scaleCoeff, 0.0f, 2.0f);
+        glfwSwapBuffers(main_window);
 
-        ImGui::SliderFloat("Rotate oX", &RotateX, 0.0f, 360.0f);
-        ImGui::SliderFloat("Rotate oY", &RotateY, 0.0f, 360.0f);
-        ImGui::SliderFloat("Rotate oZ", &RotateZ, 0.0f, 360.0f);
-        ImGui::ColorEdit3("Figure color", (float*)&figureColor);
-        ImGui::ColorEdit3("Grid color", (float*)&outlineColor);
-        if (ImGui::SliderInt("Figure precision", &figurePrecision, 5, 50)) {
-            recalculateFigure = true;
+        /*
+         * SECOND WINDOW
+         */
+
+        glfwMakeContextCurrent(settings_window);
+        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+
+        static bool SchemeTab = true;
+        static bool SettingsTab = false;
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize;
+        ImGui::NewFrame();
+
+        ImGui::BeginMainMenuBar();
+        if (ImGui::BeginMenu("Scheme")) {
+            SchemeTab = true;
+            SettingsTab = false;
+            if (ImGui::MenuItem("Close")) {
+                SchemeTab = false;
+            }
+            ImGui::EndMenu();
         }
-        if (ImGui::SliderFloat("Cardioid parameter", &cardioidMainValue, -5.0f, 5.0f)) {
-            recalculateFigure = true;
+        if (ImGui::BeginMenu("Settings")) {
+            SettingsTab = true;
+            SchemeTab = false;
+            if (ImGui::MenuItem("Close")) {
+                SettingsTab = false;
+            }
+            ImGui::EndMenu();
         }
-        ImGui::Checkbox("Fill", &fillDraw);
-        ImGui::Text("Light properties");
-        ImGui::SliderFloat("Ambient", &ambientStrength, 0.0f, 1.0f);
-        ImGui::SliderFloat("Diffuse", &diffuseStrength, 0.0f, 1.0f);
-        ImGui::SliderFloat("Specular", &specularStrength, 0.0f, 1.0f);
-        ImGui::SliderInt("Specular Power", &specularPow, 1, 32);
 
+        ImGui::EndMainMenuBar();
 
-        ImGui::End();
+        if (SchemeTab) {
+            ImGui::Begin("Scheme", nullptr, flags);
+            ImGui::RadioButton("Light", &curScheme, IMGUI_LIGHT_SCHEME); ImGui::SameLine();
+            ImGui::RadioButton("Dark", &curScheme, IMGUI_DARK_SCHEME); ImGui::SameLine();
+            ImGui::RadioButton("Classic", &curScheme, IMGUI_CLASSIC_SCHEME);
+            switch (curScheme) {
+                case IMGUI_LIGHT_SCHEME:
+                    ImGui::StyleColorsLight();
+                    break;
+                case IMGUI_DARK_SCHEME:
+                    ImGui::StyleColorsDark();
+                    break;
+                case IMGUI_CLASSIC_SCHEME:
+                    ImGui::StyleColorsClassic();
+                    break;
+                default:
+                    ImGui::StyleColorsLight();
+              }
+            ImGui::End();
+        } else if (SettingsTab) {
+            ImGui::Begin("Settings", nullptr, flags);
+            ImGui::SliderFloat("Scale", &scaleCoeff, 0.0f, 2.0f);
+
+            ImGui::SliderFloat("Rotate oX", &RotateX, 0.0f, 360.0f);
+            ImGui::SliderFloat("Rotate oY", &RotateY, 0.0f, 360.0f);
+            ImGui::SliderFloat("Rotate oZ", &RotateZ, 0.0f, 360.0f);
+            ImGui::ColorEdit3("Figure color", (float*)&figureColor);
+            ImGui::ColorEdit3("Grid color", (float*)&outlineColor);
+            if (ImGui::SliderInt("Figure precision", &figurePrecision, 5, 50)) {
+                recalculateFigure = true;
+            }
+            if (ImGui::SliderFloat("Cardioid parameter", &cardioidMainValue, -5.0f, 5.0f)) {
+                recalculateFigure = true;
+            }
+            ImGui::Checkbox("Fill", &fillDraw); ImGui::SameLine();
+            ImGui::Checkbox("Grid", &gridDraw);
+
+            ImGui::Text("Light properties");
+            ImGui::SliderFloat("Ambient", &ambientStrength, 0.0f, 1.0f);
+            ImGui::SliderFloat("Diffuse", &diffuseStrength, 0.0f, 1.0f);
+            ImGui::SliderFloat("Specular", &specularStrength, 0.0f, 1.0f);
+            ImGui::SliderInt("Specular Power", &specularPow, 1, 32);
+            ImGui::End();
+        }
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        glfwSwapBuffers(main_window);
+        glfwSwapBuffers(settings_window);
     }
 
     glDeleteVertexArrays(1, &VAO1);
@@ -491,20 +570,20 @@ std::pair<std::vector<float>, std::vector<unsigned>> customFigure(const std::vec
             glm::vec3 n1 = glm::cross(
                     (next[j]-prev[j]).asVec3(),
                     (next[jnext]-next[j]).asVec3()
-                    );
+            );
             glm::vec3 n2 = glm::cross(
                     (prev[jnext]-next[jnext]).asVec3(),
                     (prev[j]-prev[jnext]).asVec3()
             );
 
             triangles.insert(triangles.end(), {
-                prev[j].x, prev[j].y, prev[j].z, n1.x, n1.y, n1.z,// r, g, b,
-                next[j].x, next[j].y, next[j].z, n1.x, n1.y, n1.z,// r, g, b,
-                next[jnext].x, next[jnext].y, next[jnext].z, n1.x, n1.y, n1.z,// r, g, b,
+                    prev[j].x, prev[j].y, prev[j].z, n1.x, n1.y, n1.z,// r, g, b,
+                    next[j].x, next[j].y, next[j].z, n1.x, n1.y, n1.z,// r, g, b,
+                    next[jnext].x, next[jnext].y, next[jnext].z, n1.x, n1.y, n1.z,// r, g, b,
 
-                next[jnext].x, next[jnext].y, next[jnext].z, n2.x, n2.y, n2.z,// r, g, b,
-                prev[jnext].x, prev[jnext].y, prev[jnext].z, n2.x, n2.y, n2.z,// r, g, b,
-                prev[j].x, prev[j].y, prev[j].z, n2.x, n2.y, n2.z,// r, g, b,
+                    next[jnext].x, next[jnext].y, next[jnext].z, n2.x, n2.y, n2.z,// r, g, b,
+                    prev[jnext].x, prev[jnext].y, prev[jnext].z, n2.x, n2.y, n2.z,// r, g, b,
+                    prev[j].x, prev[j].y, prev[j].z, n2.x, n2.y, n2.z,// r, g, b,
             });
         }
 
