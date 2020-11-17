@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <thread>
 #include <cmath>
 
 #include <glad/glad.h>
@@ -32,23 +33,28 @@ GLuint attachAndLinkShaders(GLuint vertexShader, GLuint fragmentShader);
 
 
 std::pair<std::vector<float>, std::vector<unsigned>> customFigure(const std::vector<crv::point3> &keyPoints,
-                                                                  size_t precision);
+                                                                  int precision);
 
-std::vector<crv::point3> cardioid(float a, size_t precision);
+std::vector<crv::point3> cardioid(float a, int precision);
 
 std::pair<std::vector<float>, std::vector<unsigned>> cubeFigure();
 
 const char* glsl_version = "#version 450";
 
-const GLuint WIDTH = 1000, HEIGHT = 800;
-int figurePrecision = 2;
+const GLuint width = 1000, height = 600;
+const GLuint settings_width = 640, settings_height = 480;
+
+int figurePrecision = 40;
 bool recalculateFigure = false;
+float figureFlattening = 1.0f;
+float cardioidMainValue = 2.0f;
 
 float FOV = 45.0f;
 float scaleX = 2.0f;
 float scaleY = 2.0f;
 float scaleZ = 2.0f;
 float scaleSpeed = 1.0f;
+float scaleCoeff = 0.2f;
 
 float RotateX = 0.0f;
 float RotateY = 0.0f;
@@ -58,53 +64,41 @@ glm::vec3 cameraFront = glm::vec3(-1.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
 glm::vec3 lightPos(2.0f, 0.0f, 0.5f);
 glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+glm::vec3 figureColor(1.0f, 1.0f, 1.0f);
 
 float ambientStrength = 0.3;
 float diffuseStrength = 0.7;
 float specularStrength = 0.9;
 int specularPow = 32;
 
+bool fillDraw = true;
+
 int main() {
-
-
-//    std::vector<float> v = fig.first;
-//    std::vector<unsigned> idx = fig.second;
-//
-//    for (size_t i = 0; i < v.size(); i += 9) {
-//        for (size_t j = i; j < i+9; j++) {
-//            std::cout << v[j] << " ";
-//        }
-//        std::cout << '\n';
-//    }
-//
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
-    GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "Made by @devepodete. All rights reserved.", NULL, NULL);
-    glfwMakeContextCurrent(window);
-    if (window == NULL) {
+    GLFWwindow *main_window = glfwCreateWindow(width, height, "Made by @devepodete. All rights reserved.", NULL, NULL);
+    glfwMakeContextCurrent(main_window);
+    if (main_window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return EXIT_FAILURE;
     }
 
-
-
-
-    glfwSetKeyCallback(window, key_callback);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetKeyCallback(main_window, key_callback);
+    glfwSetFramebufferSizeCallback(main_window, framebuffer_size_callback);
 
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
         std::cout << "Failed to initialize OpenGL context" << std::endl;
         return EXIT_FAILURE;
     }
 
-    std::vector<crv::point3> keyPoints;
+    std::vector<crv::point3> keyPoints = {{0, 0, 0}, {3, 3, -2}, {3, -3, 2}};
 
-    auto tempTriangles = customFigure({{0, 0, 0}, {3, 3, -2}, {3, -3, 2}}, 40);
+    auto tempTriangles = customFigure(keyPoints, figurePrecision);
     std::vector<float> vertices = tempTriangles.first;
     std::cout << "vertices: " << vertices.size() << std::endl;
 //    for (size_t i = 0; i < vertices.size(); i += 9) {
@@ -116,7 +110,7 @@ int main() {
     std::vector<float> cubeVertices = tempCubeTriangles.first;
     std::vector<unsigned> cubeIndices = tempCubeTriangles.second;
 
-    glViewport(0, 0, WIDTH, HEIGHT);
+    glViewport(0, 0, width, height);
 
     GLuint vertexShader = createShader(GL_VERTEX_SHADER, "../shaders/shader.vert");
     GLuint fragmentShader = createShader(GL_FRAGMENT_SHADER, "../shaders/shader.frag");
@@ -171,25 +165,28 @@ int main() {
 
     glUseProgram(shaderProgram);
 
-    glCullFace(GL_CW);
+    //glCullFace(GL_CW);
     //glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
-    glm::mat4 projection = glm::perspective(glm::radians(FOV), (float) WIDTH / (float) HEIGHT, 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(FOV), (float) width / (float) height, 0.1f, 100.0f);
 
 
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     io.Fonts->AddFontFromFileTTF("../imgui/fonts/ProggyClean.ttf", 15.0f);
 
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplGlfw_InitForOpenGL(main_window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     ImGui::StyleColorsLight();
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    ImVec4 figureColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    ImVec4 outlineColor = ImVec4(1.0f, 0.0f, 0.0f, 1.00f);
 
+    glLineWidth(0.5f);
+    glEnable(GL_LINE_SMOOTH);
 
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(main_window)) {
         glfwPollEvents();
 
         float time = (float) glfwGetTime();
@@ -197,6 +194,7 @@ int main() {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
 
         glClearColor(0.1f, 0.0f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -207,6 +205,7 @@ int main() {
         glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
         glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), lightPos.x, lightPos.y, lightPos.z);
 
+
         glUniform1f(glGetUniformLocation(shaderProgram, "time"), time);
         glUniform1f(glGetUniformLocation(shaderProgram, "ambientStrength"), ambientStrength);
         glUniform1f(glGetUniformLocation(shaderProgram, "diffuseStrength"), diffuseStrength);
@@ -215,11 +214,14 @@ int main() {
 
 
         if (recalculateFigure) {
-            //tempTriangles = customFigure(keyPoints, figurePrecision);
+            //std::cout << "Recalculating...\n";
+            tempTriangles = customFigure(keyPoints, figurePrecision);
+            std::cout << "flattering: " << figureFlattening << '\n';
+            //std::cout << "Recalculated\n";
             vertices = tempTriangles.first;
             indices = tempTriangles.second;
-            std::cout << "1 vertices: " << vertices.size() << '\n';
-            std::cout << "1 indices: " << indices.size() << '\n';
+            //std::cout << "1 vertices: " << vertices.size() << '\n';
+            //std::cout << "1 indices: " << indices.size() << '\n';
             glNamedBufferData(VBO1, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
             glNamedBufferData(EBO1, indices.size() * sizeof(unsigned), indices.data(), GL_DYNAMIC_DRAW);
             recalculateFigure = false;
@@ -230,8 +232,10 @@ int main() {
         //scaleZ = std::abs(std::cos(time * scaleSpeed / 6)) + 0.5f;
 
         glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-0.5f, -0.5f, -0.5f));
         //model = glm::rotate(model, (float) glfwGetTime() / 2.0f, glm::vec3(0.0, 0.0, 1.0));
-        model = glm::scale(model, glm::vec3(scaleX, scaleY, scaleZ));
+        float totalScale = figureFlattening * scaleCoeff;
+        model = glm::scale(model, glm::vec3(totalScale, totalScale, totalScale));
 
         glm::mat4 view = glm::mat4(1.0f);
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -247,7 +251,12 @@ int main() {
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+        if (fillDraw) {
+            glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), figureColor.x, figureColor.y, figureColor.z);
+            glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+        }
+        glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), outlineColor.x, outlineColor.y, outlineColor.z);
+        glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
 
 
         glBindVertexArray(lightVAO);
@@ -261,21 +270,40 @@ int main() {
         glUniformMatrix4fv(glGetUniformLocation(lightShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(lightShaderProgram, "projection"), 1, GL_FALSE,
                            glm::value_ptr(projection));
-        lightColor = glm::vec3(clear_color.x, clear_color.y, clear_color.z);
+
         glUniform3f(glGetUniformLocation(lightShaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
+
 
         glDrawElements(GL_TRIANGLES, cubeIndices.size(), GL_UNSIGNED_INT, 0);
 
-        ImGui::Begin("Title");
-        ImGui::Text("hello");
-        ImGui::SliderFloat("rotation", &RotateX, 0.0f, 360.0f);
-        ImGui::ColorEdit3("clear color", (float*)&clear_color);
+        ImGui::Begin("Settings");
+        ImGui::SliderFloat("Scale", &scaleCoeff, 0.0f, 2.0f);
+
+        ImGui::SliderFloat("Rotate oX", &RotateX, 0.0f, 360.0f);
+        ImGui::SliderFloat("Rotate oY", &RotateY, 0.0f, 360.0f);
+        ImGui::SliderFloat("Rotate oZ", &RotateZ, 0.0f, 360.0f);
+        ImGui::ColorEdit3("Figure color", (float*)&figureColor);
+        ImGui::ColorEdit3("Grid color", (float*)&outlineColor);
+        if (ImGui::SliderInt("Figure precision", &figurePrecision, 5, 50)) {
+            recalculateFigure = true;
+        }
+        if (ImGui::SliderFloat("Cardioid parameter", &cardioidMainValue, -5.0f, 5.0f)) {
+            recalculateFigure = true;
+        }
+        ImGui::Checkbox("Fill", &fillDraw);
+        ImGui::Text("Light properties");
+        ImGui::SliderFloat("Ambient", &ambientStrength, 0.0f, 1.0f);
+        ImGui::SliderFloat("Diffuse", &diffuseStrength, 0.0f, 1.0f);
+        ImGui::SliderFloat("Specular", &specularStrength, 0.0f, 1.0f);
+        ImGui::SliderInt("Specular Power", &specularPow, 1, 32);
+
+
         ImGui::End();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(main_window);
     }
 
     glDeleteVertexArrays(1, &VAO1);
@@ -432,19 +460,19 @@ GLuint attachAndLinkShaders(GLuint vertexShader, GLuint fragmentShader) {
 }
 
 std::pair<std::vector<float>, std::vector<unsigned>> customFigure(const std::vector<crv::point3> &keyPoints,
-                                                                  size_t precision) {
-    float r = 1.0;
-    float g = 1.0;
-    float b = 1.0;
+                                                                  int precision) {
+    //std::cout << "Precision:" << precision << "\n";
     std::vector<float> triangles;
 
     crv::Bezier bezier;
     bezier.setPrecision(precision);
+    //std::cout << "Precision set\n";
     bezier.setKeyPoints(keyPoints);
+    //std::cout << "Keypoints set\n";
     bezier.calculateCurve();
-    std::cout << "bezier: " << bezier.points.size() << '\n';
+    std::cout << "Bezier: " << bezier.points.size() << '\n';
 
-    std::vector<crv::point3> cardi = cardioid(2.0, precision);
+    std::vector<crv::point3> cardi = cardioid(cardioidMainValue, precision);
     std::cout << "Cardi: " << cardi.size() << '\n';
 
     std::vector<crv::point3> prev = cardi;
@@ -497,6 +525,7 @@ std::pair<std::vector<float>, std::vector<unsigned>> customFigure(const std::vec
 
     std::cout << "fmin: " << fmin << " , fmax: " << fmax << '\n';
     float coeff = std::max(std::abs(fmin), std::abs(fmax));
+    figureFlattening = coeff;
 
     for (size_t i = 0; i < triangles.size(); i += 6) {
         triangles[i] /= coeff;
@@ -515,7 +544,7 @@ std::pair<std::vector<float>, std::vector<unsigned>> customFigure(const std::vec
     return {triangles, indices};
 }
 
-std::vector<crv::point3> cardioid(float a, size_t precision) {
+std::vector<crv::point3> cardioid(float a, int precision) {
     std::vector<crv::point3> res(precision);
 
     std::vector<float> phi = math::linspace(0, 2.0f * math::pi, precision);
