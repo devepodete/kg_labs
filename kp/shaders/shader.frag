@@ -1,6 +1,5 @@
 #version 450 core
 
-in vec3 objectColor;
 in vec3 FragPos;
 in vec3 Normal;
 
@@ -13,6 +12,7 @@ uniform int specularPow;
 uniform vec3 lightColor;
 uniform vec3 lightPos;
 uniform vec3 viewPos;
+uniform vec3 objectColor;
 
 void main() {
     vec3 norm = normalize(Normal);
@@ -27,7 +27,10 @@ void main() {
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diffuseStrength * diff * lightColor;
 
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), specularPow);
+    float spec = 0.0;
+    if (diff > 0) {
+        spec = pow(max(dot(viewDir, reflectDir), 0.0), specularPow);
+    }
     vec3 specular = specularStrength * spec * lightColor;
 
     vec3 result = (ambient + diffuse + specular) * objectColor;
