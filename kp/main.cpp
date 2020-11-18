@@ -41,11 +41,10 @@ std::pair<std::vector<float>, std::vector<unsigned>> cubeFigure();
 const char *glsl_version = "#version 450";
 
 const GLuint width = 800, height = 600;
-const GLuint settings_width = 470, settings_height = 400;
+const GLuint settings_width = 470, settings_height = 470;
 
 int figurePrecision = 40;
 bool recalculateFigure = false;
-float figureFlattening = 1.0f;
 float cardioidMainValue = 2.0f;
 
 float FOV = 45.0f;
@@ -64,6 +63,9 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
 glm::vec3 lightPos(2.0f, 0.0f, 0.5f);
 glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 glm::vec3 figureColor(1.0f, 1.0f, 1.0f);
+std::vector<crv::point3> keyPoints = {{0, 0,  0},
+                                      {3, 3,  -2},
+                                      {3, -3, 2}};
 
 float ambientStrength = 0.3;
 float diffuseStrength = 0.7;
@@ -79,6 +81,7 @@ enum {
     IMGUI_CLASSIC_SCHEME
 };
 int curScheme = IMGUI_LIGHT_SCHEME;
+
 
 int main() {
     if (!glfwInit()) {
@@ -119,8 +122,6 @@ int main() {
     glDeleteShader(lightFragmentShader);
     std::cout << "--- SHADERS INITIALIZED ---\n";
 
-
-    std::vector<crv::point3> keyPoints = {{0, 0, 0}, {3, 3, -2}, {3, -3, 2}};
 
     auto tempTriangles = customFigure(keyPoints, figurePrecision);
     std::vector<float> vertices = tempTriangles.first;
@@ -192,7 +193,7 @@ int main() {
         glfwTerminate();
         return EXIT_FAILURE;
     }
-    glfwSetWindowPos(settings_window, 1000, 300);
+    glfwSetWindowPos(settings_window, 1000, 200);
 
     glfwSetKeyCallback(settings_window, key_callback);
     glfwSetFramebufferSizeCallback(settings_window, framebuffer_size_callback);
@@ -212,12 +213,23 @@ int main() {
     glLineWidth(0.5f);
     glEnable(GL_LINE_SMOOTH);
 
+    auto lastTime = (float) glfwGetTime();
+    int frames = 0;
+    int fps = 0;
+    int fpsAnxiety = 3;
+
     while (!glfwWindowShouldClose(main_window) && !glfwWindowShouldClose(settings_window)) {
         glfwPollEvents();
 
         glfwMakeContextCurrent(main_window);
 
-        float time = (float) glfwGetTime();
+        auto time = (float) glfwGetTime();
+        frames++;
+        if (time - lastTime >= (1.0f / (float) fpsAnxiety)) {
+            lastTime = time;
+            fps = frames * fpsAnxiety;
+            frames = 0;
+        }
 
         glClearColor(0.1f, 0.0f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -245,14 +257,9 @@ int main() {
             recalculateFigure = false;
         }
 
-        //scaleX = 2*std::abs(std::sin((float)glfwGetTime() * scaleSpeed));
-        //scaleY = std::abs(std::cos((float)glfwGetTime() * scaleSpeed));
-        //scaleZ = std::abs(std::cos(time * scaleSpeed / 6)) + 0.5f;
-
         glm::mat4 model = glm::mat4(1.0f);
-        //model = glm::translate(model, glm::vec3(-1.0f, -1.0f, -1.0f));
-        //model = glm::rotate(model, (float) glfwGetTime() / 2.0f, glm::vec3(0.0, 0.0, 1.0));
-        float totalScale = figureFlattening * scaleCoeff;
+
+        float totalScale = scaleCoeff;
         model = glm::scale(model, glm::vec3(totalScale, totalScale, totalScale));
 
         glm::mat4 view = glm::mat4(1.0f);
@@ -270,11 +277,13 @@ int main() {
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
         if (fillDraw) {
-            glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), figureColor.x, figureColor.y, figureColor.z);
+            glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), figureColor.x, figureColor.y,
+                        figureColor.z);
             glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
         }
         if (gridDraw) {
-            glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), outlineColor.x, outlineColor.y, outlineColor.z);
+            glUniform3f(glGetUniformLocation(shaderProgram, "objectColor"), outlineColor.x, outlineColor.y,
+                        outlineColor.z);
             glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
         }
 
@@ -285,16 +294,28 @@ int main() {
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.1f, 0.1, 0.1));
 
+        glUniform3f(glGetUniformLocation(lightShaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
 
         glUniformMatrix4fv(glGetUniformLocation(lightShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(lightShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(lightShaderProgram, "projection"), 1, GL_FALSE,
                            glm::value_ptr(projection));
-
-        glUniform3f(glGetUniformLocation(lightShaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
-
-
         glDrawElements(GL_TRIANGLES, cubeIndices.size(), GL_UNSIGNED_INT, 0);
+
+        for (size_t i = 0; i < keyPoints.size(); i++) {
+            model = glm::mat4(1.0f);
+            model = glm::scale(model, glm::vec3(totalScale, totalScale, totalScale));
+            model = glm::translate(model, glm::vec3(keyPoints[i].asVec3()));
+            model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+
+            glUniform3f(glGetUniformLocation(lightShaderProgram, "lightColor"), outlineColor.x, outlineColor.y,
+                        outlineColor.z);
+            glUniformMatrix4fv(glGetUniformLocation(lightShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+            glUniformMatrix4fv(glGetUniformLocation(lightShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+            glUniformMatrix4fv(glGetUniformLocation(lightShaderProgram, "projection"), 1, GL_FALSE,
+                               glm::value_ptr(projection));
+            glDrawElements(GL_TRIANGLES, cubeIndices.size(), GL_UNSIGNED_INT, 0);
+        }
 
         glfwSwapBuffers(main_window);
 
@@ -315,19 +336,14 @@ int main() {
         ImGui::NewFrame();
 
         ImGui::BeginMainMenuBar();
-        if (ImGui::BeginMenu("Scheme")) {
-            SchemeTab = true;
-            SettingsTab = false;
-            if (ImGui::MenuItem("Close")) {
-                SchemeTab = false;
-            }
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Settings")) {
-            SettingsTab = true;
-            SchemeTab = false;
-            if (ImGui::MenuItem("Close")) {
+        if (ImGui::BeginMenu("Tools")) {
+            if (ImGui::MenuItem("Scheme")) {
+                SchemeTab = true;
                 SettingsTab = false;
+            }
+            if (ImGui::MenuItem("Settings")) {
+                SchemeTab = false;
+                SettingsTab = true;
             }
             ImGui::EndMenu();
         }
@@ -336,8 +352,10 @@ int main() {
 
         if (SchemeTab) {
             ImGui::Begin("Scheme", nullptr, flags);
-            ImGui::RadioButton("Light", &curScheme, IMGUI_LIGHT_SCHEME); ImGui::SameLine();
-            ImGui::RadioButton("Dark", &curScheme, IMGUI_DARK_SCHEME); ImGui::SameLine();
+            ImGui::RadioButton("Light", &curScheme, IMGUI_LIGHT_SCHEME);
+            ImGui::SameLine();
+            ImGui::RadioButton("Dark", &curScheme, IMGUI_DARK_SCHEME);
+            ImGui::SameLine();
             ImGui::RadioButton("Classic", &curScheme, IMGUI_CLASSIC_SCHEME);
             switch (curScheme) {
                 case IMGUI_LIGHT_SCHEME:
@@ -351,24 +369,37 @@ int main() {
                     break;
                 default:
                     ImGui::StyleColorsLight();
-              }
+            }
             ImGui::End();
         } else if (SettingsTab) {
             ImGui::Begin("Settings", nullptr, flags);
+            ImGui::Text("FPS: %d", fps);
+
+            if (ImGui::SliderFloat3("KeyPoint1", keyPoints[0].asFloat(), -3.0f, 3.0f)) {
+                recalculateFigure = true;
+            }
+            if (ImGui::SliderFloat3("KeyPoint2", keyPoints[1].asFloat(), -3.0f, 3.0f)) {
+                recalculateFigure = true;
+            }
+            if (ImGui::SliderFloat3("KeyPoint3", keyPoints[2].asFloat(), -3.0f, 3.0f)) {
+                recalculateFigure = true;
+            }
+
             ImGui::SliderFloat("Scale", &scaleCoeff, 0.0f, 2.0f);
 
             ImGui::SliderFloat("Rotate oX", &RotateX, 0.0f, 360.0f);
             ImGui::SliderFloat("Rotate oY", &RotateY, 0.0f, 360.0f);
             ImGui::SliderFloat("Rotate oZ", &RotateZ, 0.0f, 360.0f);
-            ImGui::ColorEdit3("Figure color", (float*)&figureColor);
-            ImGui::ColorEdit3("Grid color", (float*)&outlineColor);
+            ImGui::ColorEdit3("Figure color", (float *) &figureColor);
+            ImGui::ColorEdit3("Grid color", (float *) &outlineColor);
             if (ImGui::SliderInt("Figure precision", &figurePrecision, 5, 50)) {
                 recalculateFigure = true;
             }
             if (ImGui::SliderFloat("Cardioid parameter", &cardioidMainValue, -5.0f, 5.0f)) {
                 recalculateFigure = true;
             }
-            ImGui::Checkbox("Fill", &fillDraw); ImGui::SameLine();
+            ImGui::Checkbox("Fill", &fillDraw);
+            ImGui::SameLine();
             ImGui::Checkbox("Grid", &gridDraw);
 
             ImGui::Text("Light properties");
@@ -376,6 +407,7 @@ int main() {
             ImGui::SliderFloat("Diffuse", &diffuseStrength, 0.0f, 1.0f);
             ImGui::SliderFloat("Specular", &specularStrength, 0.0f, 1.0f);
             ImGui::SliderInt("Specular Power", &specularPow, 1, 32);
+
             ImGui::End();
         }
 
@@ -463,8 +495,6 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
         specularPow = std::max(std::min(specularPow + 1, 32), 1);
     }
 
-    //std::cout << "amb: " << ambientStrength << ", diff: " << diffuseStrength << ", spec: " << specularStrength <<
-    //          " | " << specularPow << '\n';
     if (figurePrecision < 2) {
         figurePrecision = 2;
     }
@@ -540,85 +570,55 @@ GLuint attachAndLinkShaders(GLuint vertexShader, GLuint fragmentShader) {
 
 std::pair<std::vector<float>, std::vector<unsigned>> customFigure(const std::vector<crv::point3> &keyPoints,
                                                                   int precision) {
-    //std::cout << "Precision:" << precision << "\n";
     std::vector<float> triangles;
 
     crv::Bezier bezier;
     bezier.setPrecision(precision);
-    //std::cout << "Precision set\n";
     bezier.setKeyPoints(keyPoints);
-    //std::cout << "Keypoints set\n";
     bezier.calculateCurve();
-    std::cout << "Bezier: " << bezier.points.size() << '\n';
 
     std::vector<crv::point3> cardi = cardioid(cardioidMainValue, precision);
-    std::cout << "Cardi: " << cardi.size() << '\n';
 
     std::vector<crv::point3> prev = cardi;
     for (crv::point3 &p : prev) {
         p += bezier.points[0];
     }
     for (size_t i = 1; i < bezier.points.size(); i++) {
-        //std::cout << "i: " << i << '\n';
         std::vector<crv::point3> next = cardi;
         for (crv::point3 &p : next) {
             p += bezier.points[i];
         }
 
         for (size_t j = 0; j < prev.size(); j++) {
-            size_t jnext = (j == prev.size()-1 ? 0 : j+1);
+            size_t jnext = (j == prev.size() - 1 ? 0 : j + 1);
             glm::vec3 n1 = glm::cross(
-                    (next[j]-prev[j]).asVec3(),
-                    (next[jnext]-next[j]).asVec3()
+                    (next[j] - prev[j]).asVec3(),
+                    (next[jnext] - next[j]).asVec3()
             );
             glm::vec3 n2 = glm::cross(
-                    (prev[jnext]-next[jnext]).asVec3(),
-                    (prev[j]-prev[jnext]).asVec3()
+                    (prev[jnext] - next[jnext]).asVec3(),
+                    (prev[j] - prev[jnext]).asVec3()
             );
 
             triangles.insert(triangles.end(), {
-                    prev[j].x, prev[j].y, prev[j].z, n1.x, n1.y, n1.z,// r, g, b,
-                    next[j].x, next[j].y, next[j].z, n1.x, n1.y, n1.z,// r, g, b,
-                    next[jnext].x, next[jnext].y, next[jnext].z, n1.x, n1.y, n1.z,// r, g, b,
+                    prev[j].x, prev[j].y, prev[j].z, n1.x, n1.y, n1.z,
+                    next[j].x, next[j].y, next[j].z, n1.x, n1.y, n1.z,
+                    next[jnext].x, next[jnext].y, next[jnext].z, n1.x, n1.y, n1.z,
 
-                    next[jnext].x, next[jnext].y, next[jnext].z, n2.x, n2.y, n2.z,// r, g, b,
-                    prev[jnext].x, prev[jnext].y, prev[jnext].z, n2.x, n2.y, n2.z,// r, g, b,
-                    prev[j].x, prev[j].y, prev[j].z, n2.x, n2.y, n2.z,// r, g, b,
+                    next[jnext].x, next[jnext].y, next[jnext].z, n2.x, n2.y, n2.z,
+                    prev[jnext].x, prev[jnext].y, prev[jnext].z, n2.x, n2.y, n2.z,
+                    prev[j].x, prev[j].y, prev[j].z, n2.x, n2.y, n2.z,
             });
         }
 
         prev = next;
     }
 
-    float fmin, fmax;
-    fmin = 1e10;
-    fmax = -1e10;
-    for (size_t i = 0; i < triangles.size(); i += 6) {
-        fmax = std::max(fmax, triangles[i]);
-        fmax = std::max(fmax, triangles[i+1]);
-        fmax = std::max(fmax, triangles[i+2]);
-        fmin = std::min(fmin, triangles[i]);
-        fmin = std::min(fmin, triangles[i+1]);
-        fmin = std::min(fmin, triangles[i+2]);
-    }
-
-    std::cout << "fmin: " << fmin << " , fmax: " << fmax << '\n';
-    float coeff = std::max(std::abs(fmin), std::abs(fmax));
-    figureFlattening = coeff;
-
-    for (size_t i = 0; i < triangles.size(); i += 6) {
-        triangles[i] /= coeff;
-        triangles[i+1] /= coeff;
-        triangles[i+2] /= coeff;
-        triangles[i+3] /= coeff;
-        triangles[i+4] /= coeff;
-        triangles[i+5] /= coeff;
-    }
-
     std::vector<unsigned> indices(triangles.size() / 6);
     for (size_t i = 0; i < indices.size(); i++) {
         indices[i] = i;
     }
+
 
     return {triangles, indices};
 }
@@ -627,7 +627,7 @@ std::vector<crv::point3> cardioid(float a, int precision) {
     std::vector<crv::point3> res(precision);
 
     std::vector<float> phi = math::linspace(0, 2.0f * math::pi, precision);
-    for(int i = 0; i < phi.size(); i++) {
+    for (int i = 0; i < phi.size(); i++) {
         float r = 2.0f * a * (1.0f - std::cos(phi[i]));
         res[i] = {0.0f, r * std::sin(phi[i]), r * std::cos(phi[i])};
     }
