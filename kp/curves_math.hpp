@@ -33,6 +33,10 @@ namespace crv {
         [[nodiscard]] glm::vec3 asVec3() const {
             return glm::vec3(x, y, z);
         }
+
+        [[nodiscard]] float *asFloat() {
+            return &x;
+        }
     };
 
     point3 operator*(float f, point3 p) {
@@ -123,19 +127,11 @@ namespace crv {
     private:
         //calculates bezier curve with O(n^2*t) time and O(n*t) memory
         void calculateCurve(const std::vector<float> &t) {
-            //std::cout << "Calculating bezier\n";
-            //std::cout << "keyPoints size: " << keyPoints.size() << " t size: " << t.size() << '\n';
-
             std::vector<std::vector<point3>> vec(keyPoints.size() - 1,
                                                                   std::vector<point3>(t.size()));
-            //std::cout << "Step 0\n";
             for (size_t i = 0; i < vec.size(); i++) {
                 calculateBezierTwoPoints(keyPoints[i], keyPoints[i + 1], vec[i], t);
             }
-
-            //std::cout << "Step 1\n";
-
-
 
             for (size_t last = vec.size() - 1; last > 0; last--) {
                 for (size_t i = 0; i < last; i++) {
@@ -144,11 +140,8 @@ namespace crv {
                     }
                 }
             }
-            //std::cout << "Step 2\n";
 
-            //std::cout << "sz:" << vec[0].size() << std::endl;
             this->points = vec[0];
-            //std::cout << "Step 3\n";
         }
 
         //calculates bezier curve for two points
