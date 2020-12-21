@@ -61,7 +61,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsa
 set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 ```
 
-5. В зависимости от вашей версии CMake исполняемый файл может находится как в директории с исходниками, так и в директории ```cmake-build-debug``` или подобной. Это может привести к возникновению ошибки с загрузкой шейдеров. В ```main.cpp``` вызывается исключение с сообщением
+5. В зависимости от того, как вы собираете проект, исполняемый файл может находится как в директории с исходниками, так и в директории ```cmake-build-debug``` или подобной. Это может привести к возникновению ошибки с загрузкой шейдеров в **ЛР 4-5, 6, КП**. В ```main.cpp``` вызывается исключение с сообщением
 ```c++
 std::cout << "Failed to open file " << filename << '\n';
 std::cout << "If such an error occurs, check executable file path and\n";
